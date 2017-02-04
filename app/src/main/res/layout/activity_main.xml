@@ -13,5 +13,16 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!" />
+        android:text="Znajdź interesujące miejsca w pobliżu!"
+        android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+    <Button
+        android:text="Szukaj!"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/button"
+        android:elevation="0dp"
+        style="@style/Widget.AppCompat.Button" />
 </RelativeLayout>
