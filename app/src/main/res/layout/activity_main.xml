@@ -22,7 +22,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
-        android:id="@+id/button"
+        android:onClick="click"
+        android:id="@+id/searchBtn"
         android:elevation="0dp"
         style="@style/Widget.AppCompat.Button" />
 </RelativeLayout>
