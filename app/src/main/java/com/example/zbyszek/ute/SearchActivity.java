@@ -1,6 +1,9 @@
 package com.example.zbyszek.ute;
 
+import android.*;
+import android.Manifest;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -15,7 +18,6 @@ import android.widget.Spinner;
 
 // Activity collecting user preferences about places and distance
 public class SearchActivity extends AppCompatActivity {
-
     float distance;
 
     @Override
@@ -40,6 +42,8 @@ public class SearchActivity extends AppCompatActivity {
 
             public void onClick(View view){
                 // action
+                Intent intent = new Intent(SearchActivity.this, MapsActivity.class);
+                startActivity(intent);
             }
         });
 
