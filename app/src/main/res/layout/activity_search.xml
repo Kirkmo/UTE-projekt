@@ -33,23 +33,73 @@
         android:layout_marginBottom="89dp"
         android:id="@+id/searchBtn2" />
 
-    <Spinner
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="159dp"
-        android:id="@+id/spinnerPlaces"
-        android:layout_below="@+id/appBarLayout"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
-
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
         android:text="Promień poszukiwań"
         android:ems="10"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/editTextDistance" />
+        android:id="@+id/editTextDistance"
+        android:layout_above="@+id/searchBtn2"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="37dp"
+        android:layout_marginStart="37dp"
+        android:layout_marginBottom="30dp" />
+
+    <CheckBox
+        android:text="Kino"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/editTextDistance"
+        android:layout_alignLeft="@+id/editTextDistance"
+        android:layout_alignStart="@+id/editTextDistance"
+        android:layout_marginBottom="23dp"
+        android:id="@+id/checkBoxCinema"
+        android:onClick="onCheckboxClicked"/>
+
+    <CheckBox
+        android:text="Sklep spożywczy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/checkBoxCinema"
+        android:layout_alignLeft="@+id/checkBoxCinema"
+        android:layout_alignStart="@+id/checkBoxCinema"
+        android:layout_marginBottom="18dp"
+        android:id="@+id/checkBoxShop"
+        android:onClick="onCheckboxClicked"/>
+
+    <CheckBox
+        android:text="Przystanek"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/checkBoxShop"
+        android:layout_alignLeft="@+id/checkBoxShop"
+        android:layout_alignStart="@+id/checkBoxShop"
+        android:layout_marginBottom="19dp"
+        android:id="@+id/checkBocStop"
+        android:onClick="onCheckboxClicked"/>
+
+    <CheckBox
+        android:text="Pub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:id="@+id/checkBoxPub"
+        android:layout_above="@+id/checkBocStop"
+        android:layout_alignLeft="@+id/checkBocStop"
+        android:layout_alignStart="@+id/checkBocStop"
+        android:onClick="onCheckboxClicked"/>
+
+    <CheckBox
+        android:text="Teatr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="13dp"
+        android:id="@+id/checkBoxTheatre"
+        android:layout_above="@+id/checkBoxPub"
+        android:layout_alignLeft="@+id/checkBoxPub"
+        android:layout_alignStart="@+id/checkBoxPub"
+        android:onClick="onCheckboxClicked"/>
 
 </RelativeLayout>
