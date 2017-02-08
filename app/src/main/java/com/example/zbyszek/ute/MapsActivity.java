@@ -1,18 +1,15 @@
 package com.example.zbyszek.ute;
 
-import android.*;
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityCompat.OnRequestPermissionsResultCallback;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -21,8 +18,11 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
     private GoogleApiClient mGoogleApiClient;
@@ -30,6 +30,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private Location mLastLocation;
     private float zoomLevel = 15.0f;
+    private APIExecutor apiExe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +76,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
                 requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
             }
-        }
-        else
+        } else
             mMap.setMyLocationEnabled(true);
     }
 
@@ -94,15 +94,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-        }
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
-                mGoogleApiClient);
-        LatLng myLastLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(myLastLocation).title("Tu jesteś"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLastLocation));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(zoomLevel));
+        Intent intent = getIntent();
+        boolean[] places = intent.getBooleanArrayExtra("places");
+        String distance = intent.getStringExtra("distance");
+        String location = animateMyLocation();
+        apiExe = new APIExecutor(mMap, location, distance, places);
+        apiExe.execute();
+//        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+//            @Override
+//            public boolean onMyLocationButtonClick() {
+//                showNearbyPlaces();
+//                return false;
+//            }
+//        });
     }
 
     @Override
@@ -114,4 +118,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
+
+    private String animateMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        }
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        LatLng myLastLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
+        mMap.addMarker(new MarkerOptions().position(myLastLocation).title("Tu jesteś"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLastLocation));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(zoomLevel));
+        return myLastLocation.longitude+","+myLastLocation.latitude;
+    }
+
 }

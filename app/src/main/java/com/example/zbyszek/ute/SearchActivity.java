@@ -24,7 +24,7 @@ import java.util.Arrays;
 public class SearchActivity extends AppCompatActivity {
 
     String TAG = "SearchActivity";
-    float distance;
+    String distance;
     boolean[] places;
 
 
@@ -49,17 +49,17 @@ public class SearchActivity extends AppCompatActivity {
             public void onClick(View view){
                 // action
                 try{
-                    distance = Float.valueOf(editText.getText().toString());
+                    distance = editText.getText().toString();
                 }
                 catch (NumberFormatException nfe){
-                    distance = 1;
+                    distance = "1000";
                 }
 
 
 
                 Bundle bundle = new Bundle();
                 bundle.putBooleanArray("places",places);
-                bundle.putFloat("distance", distance);
+                bundle.putString("distance", distance);
                 Log.d(TAG, " Distance: " + distance + " Places: " + Arrays.toString(places));
                 Intent intent = new Intent(SearchActivity.this, MapsActivity.class);
                 intent.putExtras(bundle);

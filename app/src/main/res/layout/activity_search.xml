@@ -37,7 +37,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
-        android:text="Promień poszukiwań"
+        android:text="Promień poszukiwań [m]"
         android:ems="10"
         android:id="@+id/editTextDistance"
         android:layout_above="@+id/searchBtn2"
