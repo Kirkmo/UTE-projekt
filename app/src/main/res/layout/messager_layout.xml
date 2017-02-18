@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="false"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:id="@+id/msgTextView"
+        android:layout_alignParentRight="false"
+        android:layout_alignParentEnd="true"
+        android:textSize="20sp" />
+
+    <TextView
+        android:text="Podpis:"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/msgTextView"
+        android:layout_alignLeft="@+id/msgTextView"
+        android:layout_alignStart="@+id/msgTextView"
+        android:id="@+id/signTextView"
+        android:textSize="18sp"
+        android:layout_alignWithParentIfMissing="false"
+        android:layout_alignBottom="@+id/signEditText"
+        android:layout_alignTop="@+id/signEditText"
+        android:gravity="center" />
+
+    <EditText
+        android:hint="Szuman"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:ems="5"
+        android:layout_below="@+id/msgTextView"
+        android:layout_marginTop="30dp"
+        android:id="@+id/signEditText"
+        android:layout_alignRight="@+id/msgTextView"
+        android:layout_alignEnd="@+id/msgTextView"
+        android:layout_toRightOf="@+id/signTextView"
+        android:gravity="center"
+        />
+
+    <TextView
+        android:text="Numer Odbiorcy:"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/recNrTextView"
+        android:layout_alignLeft="@+id/msgTextView"
+        android:textSize="18sp"
+        android:layout_alignParentBottom="false"
+        android:gravity="left|center"
+        android:layout_alignBottom="@+id/recNrEditText"
+        android:layout_alignTop="@+id/recNrEditText"
+        android:layout_toLeftOf="@+id/recNrEditText" />
+
+    <EditText
+        android:hint="48516700823"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="phone"
+        android:ems="7"
+        android:layout_below="@+id/signEditText"
+        android:layout_marginTop="20dp"
+        android:id="@+id/recNrEditText"
+        android:gravity="center"
+        android:layout_alignRight="@+id/signEditText"
+        android:layout_alignEnd="@+id/signEditText" />
+
+    <TextView
+        android:text="Numer Adresata:"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/recNrEditText"
+        android:id="@+id/sendNrTextView"
+        android:textSize="18sp"
+        android:layout_alignLeft="@+id/msgTextView"
+        android:gravity="left|center"
+        android:layout_alignBottom="@+id/sendNrEditText"
+        android:layout_alignTop="@+id/sendNrEditText"
+        android:layout_toLeftOf="@+id/sendNrEditText" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="phone"
+        android:ems="7"
+        android:layout_below="@+id/recNrEditText"
+        android:layout_marginTop="20dp"
+        android:id="@+id/sendNrEditText"
+        android:hint="48602210799"
+        android:gravity="center_vertical|center"
+        android:layout_alignRight="@+id/recNrEditText"
+        android:layout_alignEnd="@+id/recNrEditText"
+        android:layout_marginBottom="30dp" />
+</RelativeLayout>

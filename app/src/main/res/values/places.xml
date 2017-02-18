@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="places">
+        <item>Stacja rowerowa</item>
+        <item>Bankomat EURONET</item>
+        <item>Hotel</item>
+        <item>Teatr</item>
+        <item>Kino</item>
+        <item>Bar</item>
+        <item>Sklep spożywczy</item>
+    </string-array>
+    <!--
+    private static final String THEATRES_ID = "e26218cb-61ec-4ccb-81cc-fd19a6fee0f8";
+    private static final String CASH_MASHINES_ID = "672729a7-5ff9-45de-8ae2-ffc87213b9a8";
+    private static final String BIKE_STATIONS_ID = "d2f0c41f-cda1-440a-8a27-f01f724529f8";
+    private static final String HOTELS_ID = "f019448f-951c-439e-bf37-c3268682752e";
+    -->
+    <string-array name="places_keys">
+        <item>d2f0c41f-cda1-440a-8a27-f01f724529f8</item>
+        <item>672729a7-5ff9-45de-8ae2-ffc87213b9a8</item>
+        <item>f019448f-951c-439e-bf37-c3268682752e</item>
+        <item>e26218cb-61ec-4ccb-81cc-fd19a6fee0f8</item>
+        <!--<item>movie_theater</item>-->
+        <!--<item>bar</item>-->
+        <!--<item>convenience_store</item>-->
+    </string-array>
+    <string-array name="google_places">
+        <item>Agencja nieruchomości</item>
+        <item>Agencja ubezpieczeniowa</item>
+        <item>Akwarium</item>
+        <item>Ambasada</item>
+        <item>Apteka</item>
+        <item>Bank</item>
+        <item>Bankomat</item>
+        <item>Bar</item>
+        <item>Biblioteka</item>
+        <item>Biuro podróży</item>
+        <item>Centrum handlowe</item>
+        <item>Cmentarz</item>
+        <item>Dealer samochodowy</item>
+        <item>Dekarz</item>
+        <item>Dentysta</item>
+        <item>Dom handlowy</item>
+        <item>Dom pogrzebowy</item>
+        <item>Dostawy posiłków</item>
+        <item>Dworzec autobusowy</item>
+        <item>Elektryk</item>
+        <item>Finanse (niezalecane)</item>
+        <item>Firma przeprowadzkowa</item>
+        <item>Fizjoterapeuta</item>
+        <item>Galeria Sztuki</item>
+        <item>Generalny wykonawca (niezalecane)</item>
+        <item>Hydraulik</item>
+        <item>Jubiler</item>
+        <item>Kasyno</item>
+        <item>Kawiarnia</item>
+        <item>Kemping</item>
+        <item>Kino</item>
+        <item>Klub nocny</item>
+        <item>Kościół</item>
+        <item>Kręgielnia</item>
+        <item>Księgarnia</item>
+        <item>Kwatera</item>
+        <item>Kwiaciarnia</item>
+        <item>Lekarz</item>
+        <item>Lokalne biuro rządu</item>
+        <item>Lotnisko</item>
+        <item>Malarz</item>
+        <item>Mandir</item>
+        <item>Meczet</item>
+        <item>Miejsce kultu (niezalecane)</item>
+        <item>Muzeum</item>
+        <item>Myjnia samochodowa</item>
+        <item>Naprawa samochodów</item>
+        <item>Obozowisko</item>
+        <item>Ogród zoologiczny</item>
+        <item>Opieka weterynaryjna</item>
+        <item>Park rozrywki</item>
+        <item>Park</item>
+        <item>Parking</item>
+        <item>Piekarnia</item>
+        <item>Pielęgnacja włosów</item>
+        <item>Placówka (niezalecane)</item>
+        <item>Poczta</item>
+        <item>Policja</item>
+        <item>Posiłek na wynos</item>
+        <item>Postój taksówek</item>
+        <item>Pralnia</item>
+        <item>Prawnik</item>
+        <item>Przechowywanie</item>
+        <item>Rachunkowość</item>
+        <item>Ratusz</item>
+        <item>Restauracja</item>
+        <item>Salon piękności</item>
+        <item>Siłownia</item>
+        <item>Sklep alkoholowy</item>
+        <item>Sklep meblowy</item>
+        <item>Sklep odzieżowy</item>
+        <item>Sklep rowerowy</item>
+        <item>Sklep spożywczy</item>
+        <item>Sklep z artykułami do domu</item>
+        <item>Sklep z butami</item>
+        <item>Sklep z elektroniką</item>
+        <item>Sklep z narzędziami</item>
+        <item>Sklep zoologiczny</item>
+        <item>Sklep</item>
+        <item>Spa</item>
+        <item>Spożywczy lub supermarket (niezalecane)</item>
+        <item>Stacja kolejowa</item>
+        <item>Stacja metra</item>
+        <item>Stacja paliw</item>
+        <item>Stacja tranzytowa</item>
+        <item>Stadion</item>
+        <item>Straży pożarnej</item>
+        <item>Synagoga</item>
+        <item>Szkoła</item>
+        <item>Szpital</item>
+        <item>Sąd</item>
+        <item>Ślusarz</item>
+        <item>Uniwersytet</item>
+        <item>Wypożyczalnia filmów</item>
+        <item>Wypożyczalnia samochodów</item>
+        <item>Zdrowie (niezalecane)</item>
+        <item>Żywność (niezalecane)</item>
+    </string-array>
+    <string-array name="google_place_types">
+        <item>real_estate_agency</item>
+        <item>insurance_agency</item>
+        <item>aquarium</item>
+        <item>embassy</item>
+        <item>pharmacy</item>
+        <item>bank</item>
+        <item>atm</item>
+        <item>bar</item>
+        <item>library</item>
+        <item>travel_agency</item>
+        <item>shopping_mall</item>
+        <item>cemetery</item>
+        <item>car_dealer</item>
+        <item>roofing_contractor</item>
+        <item>dentist</item>
+        <item>department_store</item>
+        <item>funeral_home</item>
+        <item>meal_delivery</item>
+        <item>bus_station</item>
+        <item>electrician</item>
+        <item>finance (deprecated)</item>
+        <item>moving_company</item>
+        <item>physiotherapist</item>
+        <item>art_gallery</item>
+        <item>general_contractor (deprecated)</item>
+        <item>plumber</item>
+        <item>jewelry_store</item>
+        <item>casino</item>
+        <item>cafe</item>
+        <item>rv_park</item>
+        <item>movie_theater</item>
+        <item>night_club</item>
+        <item>church</item>
+        <item>bowling_alley</item>
+        <item>book_store</item>
+        <item>lodging</item>
+        <item>florist</item>
+        <item>doctor</item>
+        <item>local_government_office</item>
+        <item>airport</item>
+        <item>painter</item>
+        <item>hindu_temple</item>
+        <item>mosque</item>
+        <item>place_of_worship (deprecated)</item>
+        <item>museum</item>
+        <item>car_wash</item>
+        <item>car_repair</item>
+        <item>campground</item>
+        <item>zoo</item>
+        <item>veterinary_care</item>
+        <item>amusement_park</item>
+        <item>park</item>
+        <item>parking</item>
+        <item>bakery</item>
+        <item>hair_care</item>
+        <item>establishment (deprecated)</item>
+        <item>post_office</item>
+        <item>police</item>
+        <item>meal_takeaway</item>
+        <item>taxi_stand</item>
+        <item>laundry</item>
+        <item>lawyer</item>
+        <item>storage</item>
+        <item>accounting</item>
+        <item>city_hall</item>
+        <item>restaurant</item>
+        <item>beauty_salon</item>
+        <item>gym</item>
+        <item>liquor_store</item>
+        <item>furniture_store</item>
+        <item>clothing_store</item>
+        <item>bicycle_store</item>
+        <item>convenience_store</item>
+        <item>home_goods_store</item>
+        <item>shoe_store</item>
+        <item>electronics_store</item>
+        <item>hardware_store</item>
+        <item>pet_store</item>
+        <item>store</item>
+        <item>spa</item>
+        <item>grocery_or_supermarket (deprecated)</item>
+        <item>train_station</item>
+        <item>subway_station</item>
+        <item>gas_station</item>
+        <item>transit_station</item>
+        <item>stadium</item>
+        <item>fire_station</item>
+        <item>synagogue</item>
+        <item>school</item>
+        <item>hospital</item>
+        <item>courthouse</item>
+        <item>locksmith</item>
+        <item>university</item>
+        <item>movie_rental</item>
+        <item>car_rental</item>
+        <item>health (deprecated)</item>
+        <item>food (deprecated)</item>
+    </string-array>
+</resources>

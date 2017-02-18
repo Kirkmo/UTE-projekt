@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <TextView
+        android:textSize="20dp"
+        android:textColor="@android:color/black"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/msgTextView" />
+
+    <TextView
+        android:text="Podpis:"
+        android:textSize="18dp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/signTextView" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:text="UTE Guy"
+        android:ems="5"
+        android:textAlignment="center"
+        android:id="@+id/editText4" />
+
+    <TextView
+        android:text="Numer adresata:"
+        android:textSize="18dp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView3" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="phone"
+        android:ems="5"
+        android:textAlignment="center"
+        android:id="@+id/editText2" />
+
+    <TextView
+        android:text="Numer odbiorcy:"
+        android:textSize="18dp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView4" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="phone"
+        android:ems="5"
+        android:textAlignment="center"
+        android:hint="48516700823"
+        android:id="@+id/editText3" />
+
+</LinearLayout>

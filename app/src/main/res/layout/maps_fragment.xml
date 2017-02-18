@@ -1,0 +1,18 @@
+<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:map="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/maps_activity"
+    android:name="com.google.android.gms.maps.SupportMapFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <!--tools:context="com.example.zbyszek.ute.MapsActivity"-->
+
+        <!--<android.support.design.widget.FloatingActionButton-->
+        <!--android:id="@+id/fab"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_gravity="bottom|end"-->
+        <!--android:layout_margin="@dimen/fab_margin"-->
+        <!--map:srcCompat="@android:drawable/ic_dialog_info" />-->
+
+</fragment>

@@ -1,34 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.zbyszek.ute.MainActivity"
-    tools:background="@color/wallet_bright_foreground_holo_dark">
+    android:orientation="vertical">
+    <!--tools:background="#212121"-->
+    <!--android:weightSum="1"-->
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Znajdź interesujące miejsca w pobliżu!"
-        android:textAppearance="@style/TextAppearance.AppCompat.Display1"
-        android:textColor="@android:color/background_dark" />
 
-    <Button
-        android:text="Szukaj!"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="click"
-        android:id="@+id/searchBtn"
-        android:elevation="0dp"
-        style="@style/Widget.AppCompat.Button"
-        android:layout_marginBottom="157dp"
+    <!--<ImageView-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="245dp"-->
+        <!--android:id="@+id/imageView2"-->
+        <!--android:scaleType="fitStart"-->
+        <!--android:adjustViewBounds="false"-->
+        <!--android:cropToPadding="false"-->
+        <!--android:background="#212121" />-->
+
+    <RelativeLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/relativeLayout"
+        android:layout_height="match_parent"
+        android:background="@drawable/warsaw">
 
-</RelativeLayout>
+        <Button
+            android:text="Znajdź interesujące miejsca w pobliżu!"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:onClick="click"
+            android:id="@+id/searchBtn"
+            android:elevation="0dp"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:textColor="@android:color/black"
+            android:textAppearance="@style/TextAppearance.AppCompat.Display1"
+            android:background="@drawable/warsaw"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:gravity="center_horizontal"
+            android:paddingTop="30dp" />
+
+    </RelativeLayout>
+
+</LinearLayout>

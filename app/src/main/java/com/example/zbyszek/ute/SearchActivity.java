@@ -23,7 +23,12 @@ import java.util.Arrays;
 // Activity collecting user preferences about places and distance
 public class SearchActivity extends AppCompatActivity {
 
-    String TAG = "SearchActivity";
+    final String TAG = "SearchActivity";
+    final int CINEMA_INDEX = 0;
+    final int STOP_INDEX = 1;
+    final int PUB_INDEX = 2;
+    final int THEATRE_INDEX = 3;
+    final int SHOP_INDEX = 3;
     String distance;
     boolean[] places;
 
@@ -83,35 +88,35 @@ public class SearchActivity extends AppCompatActivity {
         switch(view.getId()) {
             case R.id.checkBoxCinema:
                 if (checked)
-                    places[0] = true;
+                    places[CINEMA_INDEX] = true;
                 else
-                    places[0] = false;
+                    places[CINEMA_INDEX] = false;
 
                 break;
-            case R.id.checkBocStop:
+            case R.id.checkBoxStop:
                 if (checked)
-                    places[1] = true;
+                    places[STOP_INDEX] = true;
                 else
-                    places[1] = false;
+                    places[STOP_INDEX] = false;
                 break;
             case R.id.checkBoxPub:
                 if (checked)
-                    places[2] = true;
+                    places[PUB_INDEX] = true;
                 else
-                    places[2] = false;
+                    places[PUB_INDEX] = false;
                 break;
 
             case R.id.checkBoxTheatre:
                 if (checked)
-                    places[3] = true;
+                    places[THEATRE_INDEX] = true;
                 else
-                    places[3] = false;
+                    places[THEATRE_INDEX] = false;
                 break;
             case R.id.checkBoxShop:
                 if (checked)
-                    places[4] = true;
+                    places[SHOP_INDEX] = true;
                 else
-                    places[4] = false;
+                    places[SHOP_INDEX] = false;
                 break;
         }
     }

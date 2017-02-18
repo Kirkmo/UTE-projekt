@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         switch (view.getId()){
 
             case R.id.searchBtn:
-                intent = new Intent(MainActivity.this, SearchActivity.class);
+                intent = new Intent(MainActivity.this, PlacesChooserActivity.class);//SearchActivity.class);
                 startActivity(intent);
 
             break;
