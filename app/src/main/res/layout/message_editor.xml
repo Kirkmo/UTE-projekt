@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <EditText
+        android:id="@+id/msgEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentLeft="false"
+        android:layout_alignParentRight="false"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:layout_marginTop="30dp"
+        />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/msgEditText"
+        android:layout_alignEnd="@+id/msgEditText"
+        android:layout_alignRight="@+id/msgEditText"
+        android:layout_alignLeft="@+id/msgEditText"
+        android:layout_alignStart="@+id/msgEditText"
+        android:layout_marginTop="30dp">
+
+        <Button
+            android:id="@+id/timeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/placeButton"
+            android:layout_alignTop="@+id/placeButton"
+            android:gravity="center"
+            android:text="Wstaw czas"
+            android:layout_weight="0.5"
+            />
+        <!--android:layout_alignWithParentIfMissing="false"-->
+
+        <Button
+            android:id="@+id/placeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/timeButton"
+            android:gravity="center"
+            android:text="Wstaw miejsce"
+            android:layout_weight="0.5" />
+    </LinearLayout>
+
+</RelativeLayout>

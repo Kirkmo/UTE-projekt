@@ -20,9 +20,6 @@
         <item>672729a7-5ff9-45de-8ae2-ffc87213b9a8</item>
         <item>f019448f-951c-439e-bf37-c3268682752e</item>
         <item>e26218cb-61ec-4ccb-81cc-fd19a6fee0f8</item>
-        <!--<item>movie_theater</item>-->
-        <!--<item>bar</item>-->
-        <!--<item>convenience_store</item>-->
     </string-array>
     <string-array name="google_places">
         <item>Agencja nieruchomości</item>
@@ -93,6 +90,7 @@
         <item>Restauracja</item>
         <item>Salon piękności</item>
         <item>Siłownia</item>
+        <item>Sklep</item>
         <item>Sklep alkoholowy</item>
         <item>Sklep meblowy</item>
         <item>Sklep odzieżowy</item>
@@ -103,7 +101,6 @@
         <item>Sklep z elektroniką</item>
         <item>Sklep z narzędziami</item>
         <item>Sklep zoologiczny</item>
-        <item>Sklep</item>
         <item>Spa</item>
         <item>Spożywczy lub supermarket (niezalecane)</item>
         <item>Stacja kolejowa</item>
@@ -144,11 +141,11 @@
         <item>meal_delivery</item>
         <item>bus_station</item>
         <item>electrician</item>
-        <item>finance (deprecated)</item>
+        <item>finance</item> (deprecated)
         <item>moving_company</item>
         <item>physiotherapist</item>
         <item>art_gallery</item>
-        <item>general_contractor (deprecated)</item>
+        <item>general_contractor</item> (deprecated)
         <item>plumber</item>
         <item>jewelry_store</item>
         <item>casino</item>
@@ -167,7 +164,7 @@
         <item>painter</item>
         <item>hindu_temple</item>
         <item>mosque</item>
-        <item>place_of_worship (deprecated)</item>
+        <item>place_of_worship</item> (deprecated)
         <item>museum</item>
         <item>car_wash</item>
         <item>car_repair</item>
@@ -179,7 +176,7 @@
         <item>parking</item>
         <item>bakery</item>
         <item>hair_care</item>
-        <item>establishment (deprecated)</item>
+        <item>establishment</item> (deprecated)
         <item>post_office</item>
         <item>police</item>
         <item>meal_takeaway</item>
@@ -192,6 +189,7 @@
         <item>restaurant</item>
         <item>beauty_salon</item>
         <item>gym</item>
+        <item>store</item>
         <item>liquor_store</item>
         <item>furniture_store</item>
         <item>clothing_store</item>
@@ -202,9 +200,8 @@
         <item>electronics_store</item>
         <item>hardware_store</item>
         <item>pet_store</item>
-        <item>store</item>
         <item>spa</item>
-        <item>grocery_or_supermarket (deprecated)</item>
+        <item>grocery_or_supermarket</item> (deprecated)
         <item>train_station</item>
         <item>subway_station</item>
         <item>gas_station</item>
@@ -219,7 +216,7 @@
         <item>university</item>
         <item>movie_rental</item>
         <item>car_rental</item>
-        <item>health (deprecated)</item>
-        <item>food (deprecated)</item>
+        <item>health</item> (deprecated)
+        <item>food</item> (deprecated)
     </string-array>
 </resources>

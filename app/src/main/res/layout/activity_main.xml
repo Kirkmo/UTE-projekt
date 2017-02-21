@@ -38,13 +38,15 @@
             android:id="@+id/searchBtn"
             android:elevation="0dp"
             style="@style/Widget.AppCompat.Button.Colored"
-            android:textColor="@android:color/black"
+            android:textColor="@color/colorPrimary"
             android:textAppearance="@style/TextAppearance.AppCompat.Display1"
             android:background="@drawable/warsaw"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
             android:gravity="center_horizontal"
-            android:paddingTop="30dp" />
+            android:textAllCaps="false"
+            android:typeface="serif"
+            android:textStyle="normal|bold|italic" />
 
     </RelativeLayout>
 

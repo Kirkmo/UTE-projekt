@@ -1,10 +1,17 @@
 package com.example.zbyszek.ute;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -13,17 +20,32 @@ import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.graphics.ColorUtils;
+import android.support.v7.app.AlertDialog;
+import android.text.InputType;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckedTextView;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -37,19 +59,27 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.SphericalUtil;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity
         implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         GoogleMap.OnInfoWindowClickListener,
+        GoogleMap.OnInfoWindowLongClickListener,
         GoogleMap.OnMarkerClickListener,
-        GoogleMap.OnMapClickListener {
+        GoogleMap.OnMapClickListener,
+        LocationListener {
 
     private GoogleApiClient mGoogleApiClient;
-    private final static int MY_LOCATION_REQUEST_CODE = 1;
+    private final static int MY_LOCATION_REQUEST_CODE = 0;
+    private final static int PLACE_PICKER_REQUEST_CODE = 1;
+    private final static String REQUESTING_LOCATION_UPDATES_KEY = "0";
+    private final static String LOCATION_KEY = "1";
     private GoogleMap mMap;
     private Location mLastLocation;
     private List<APIExecutor> apiExes;
@@ -61,6 +91,7 @@ public class MapsActivity extends FragmentActivity
     private LatLng currentLocation;
     private BottomSheetBehavior bottomSheetBehavior;
 
+    private boolean mRequestingLocationUpdates = true;
     private boolean isConnected = false;
     private Marker myLocationMarker;
     private Marker addedMarker;
@@ -71,6 +102,18 @@ public class MapsActivity extends FragmentActivity
     private List<Integer> GooglePlaces;
 
     private double distance;
+    private LocationRequest mLocationRequest;
+    private Geocoder geocoder;
+    private EditText distanceEditText;
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
+                mRequestingLocationUpdates);
+        outState.putParcelable(LOCATION_KEY, mLastLocation);
+
+        super.onSaveInstanceState(outState);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +141,39 @@ public class MapsActivity extends FragmentActivity
                 }
             }
         });
+
+        updateValuesFromBundle(savedInstanceState);
+    }
+
+    private void updateValuesFromBundle(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            if (savedInstanceState.containsKey(REQUESTING_LOCATION_UPDATES_KEY)) {
+                mRequestingLocationUpdates = savedInstanceState.getBoolean(REQUESTING_LOCATION_UPDATES_KEY);
+            }
+
+            if (savedInstanceState.containsKey((LOCATION_KEY))) {
+                mLastLocation = savedInstanceState.getParcelable(LOCATION_KEY);
+            }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopLocationUpdates();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mGoogleApiClient.isConnected() && !mRequestingLocationUpdates) {
+            startLocationUpdates();
+        }
+    }
+
+    private void stopLocationUpdates() {
+        LocationServices.FusedLocationApi.removeLocationUpdates(
+                mGoogleApiClient, this);
     }
 
     private void createGoogleApiClient() {
@@ -105,6 +181,8 @@ public class MapsActivity extends FragmentActivity
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
                 .build();
     }
 
@@ -114,6 +192,7 @@ public class MapsActivity extends FragmentActivity
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
         }
@@ -135,6 +214,56 @@ public class MapsActivity extends FragmentActivity
         mMap.setOnInfoWindowClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapClickListener(this);
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            @Override
+            public View getInfoWindow(Marker marker) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                Context mContext = getApplicationContext();
+                LinearLayout infoWindow = new LinearLayout(mContext);
+                infoWindow.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(mContext);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    title.setTextColor(getColor(R.color.colorPrimary));
+                }
+                title.setGravity(Gravity.CENTER);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+
+                TextView snippet = new TextView(mContext);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    snippet.setTextColor(getColor(R.color.colorPrimaryDark));
+                }
+                snippet.setGravity(Gravity.CENTER);
+                snippet.append(marker.getSnippet());// + "\n");
+
+                infoWindow.addView(title);
+                infoWindow.addView(snippet);
+
+                if (!marker.equals(myLocationMarker)) {
+                    LatLng markerLocation = marker.getPosition();
+                    float[] distance = new float[1];
+                    Location.distanceBetween(myLastLocation.latitude, myLastLocation.longitude, markerLocation.latitude, markerLocation.longitude, distance);
+//                    snippet.append("\n W linii prostej: " + Math.round(distance[0]) + " m");
+                    TextView tv = new TextView(mContext);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        tv.setTextColor(getColor(R.color.colorPrimaryDark));
+                    }
+                    tv.setGravity(Gravity.CENTER);
+                    tv.setText("W linii prostej: " + Math.round(distance[0]) + " m");
+                    infoWindow.addView(tv);
+                }
+//
+//                int minutes = Math.round(distance[0] / Messager.METRES_PER_MINUTE);
+//                snippet.append(Messager.convertToTime(minutes));
+
+                return infoWindow;
+            }
+        });
 //        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
 //            @Override
 //            public boolean onMarkerClick(Marker marker) {
@@ -143,11 +272,12 @@ public class MapsActivity extends FragmentActivity
 //        });
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
-                requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
+//                String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+//                requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
             }
-        } else
-            mMap.setMyLocationEnabled(true);
+        }
+//        else
+        mMap.setMyLocationEnabled(true);
     }
 
     @Override
@@ -171,9 +301,19 @@ public class MapsActivity extends FragmentActivity
         UMWWaPlaces = intent.getIntegerArrayListExtra("UMWwaChecked");
         GooglePlaces = intent.getIntegerArrayListExtra("GoogleChecked");
         distance = Double.valueOf(distanceStr);
-        LatLng location = animateMyLocation();
-        initApis(location);
+        animateMyLocation();
+        initApis(myLastLocation);
+        if (mRequestingLocationUpdates) {
+            startLocationUpdates();
+        }
         isConnected = true;
+    }
+
+    private void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            return;
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
 
     private void initApis(LatLng location) {
@@ -184,12 +324,12 @@ public class MapsActivity extends FragmentActivity
             APIExecutor apiExe = new APIExecutor(mMap, location, distanceStr, placeId, markerId);
             apiExes.add(apiExe);
             apiExe.execute();
-            if (mAdapter.getCount() < UMWWaPlaces.size()) {
+//            if (mAdapter.getCount() < UMWWaPlaces.size()) {
                 mAdapter.add(getResources().getStringArray(R.array.places)[placeId - 100]);
                 mListView.setItemChecked(mListView.getCount() - 1, true);
-            } else {
-                mListView.setItemChecked(i,true);
-            }
+//            } else {
+//                mListView.setItemChecked(i,true);
+//            }
         }
         for (int i = 0; i < GooglePlaces.size(); i++) {
             int placeId = GooglePlaces.get(i);
@@ -197,13 +337,21 @@ public class MapsActivity extends FragmentActivity
             APIExecutor apiExe = new APIExecutor(mMap, location, distanceStr, placeId, markerId);
             apiExes.add(apiExe);
             apiExe.execute();
-            if (mAdapter.getCount() < UMWWaPlaces.size() + GooglePlaces.size()) {
+//            if (mAdapter.getCount() < UMWWaPlaces.size() + GooglePlaces.size()) {
                 mAdapter.add(getResources().getStringArray(R.array.google_places)[placeId]);
                 mListView.setItemChecked(mListView.getCount() - 1, true);
-            } else {
-                mListView.setItemChecked(UMWWaPlaces.size() + i,true);
-            }
+//            } else {
+//                mListView.setItemChecked(UMWWaPlaces.size() + i,true);
+//            }
         }
+    }
+
+    private void updateApis() {
+        for (int i = 0; i < apiExes.size(); i++) {
+            apiExes.get(i).update(currentLocation,distanceStr);
+            mListView.setItemChecked(i,true);
+        }
+        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
     }
 
     @Override
@@ -224,8 +372,19 @@ public class MapsActivity extends FragmentActivity
             @NonNull
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
-                TextView view = (TextView) super.getView(position, convertView, parent);
+//                TextView view = (TextView) super.getView(position, convertView, parent);
+                CheckedTextView view = (CheckedTextView) super.getView(position, convertView, parent);
+                float[] hsv = new float[3];
+                hsv[0] = (position + 1) * 30f;
+                hsv[1] = 0.9f;
+                hsv[2] = 0.7f;
+//                view.setTypeface(null,Typeface.BOLD);
+                view.setBackgroundColor(ColorUtils.HSLToColor(hsv));
                 view.setTextColor(Color.BLACK);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//                    hsv[0] = 0.0f;
+                    view.setCheckMarkTintList(ColorStateList.valueOf(Color.WHITE));//ColorUtils.HSLToColor(hsv)));
+                }
                 return view;
             }
         };
@@ -245,44 +404,81 @@ public class MapsActivity extends FragmentActivity
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
     }
 
-    private LatLng animateMyLocation() {
+    private void animateMyLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
         }
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
 //        LatLng
         currentLocation = myLastLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
+        mLocationRequest = LocationRequest.create();
         markLocation(myLastLocation);
 //        mMap.animateCamera(CameraUpdateFactory.zoomTo(zoomLevel));
-        return myLastLocation;
+//        return myLastLocation;
     }
 
     private void markLocation(LatLng location) {
         myLocationMarker = mMap.addMarker(new MarkerOptions()
                 .position(location)
                 .title("Tu jesteś")
-                .snippet(mLastLocation.getLatitude() + ", " + mLastLocation.getLongitude())
+                .snippet(writeAddressAndLocation(location))
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
         myLocationCircle = mMap.addCircle(new CircleOptions().center(location).radius(distance).strokeColor(Color.LTGRAY));
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(location,distance),0));
     }
 
-    public LatLngBounds toBounds(LatLng center, double radius) {
+    private String writeAddressAndLocation(LatLng location) {
+        if (geocoder == null)
+            geocoder = new Geocoder(this, Locale.getDefault());
+        Address address = null;
+        try {
+            address = geocoder.getFromLocation(location.latitude, location.longitude, 1).get(0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return address.getAddressLine(0) + ", " + address.getLocality() + "\n" + mLastLocation.getLatitude() + ", " + mLastLocation.getLongitude();
+    }
+
+    private LatLngBounds toBounds(LatLng center, double radius) {
         LatLng southwest = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 225);
         LatLng northeast = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 45);
         return new LatLngBounds(southwest, northeast);
     }
 
     @Override
-    public void onInfoWindowClick(Marker marker) {
+    public void onInfoWindowClick(final Marker marker) {
         if (marker.equals(addedMarker) || marker.equals(myLocationMarker)) {
-            if (!currentLocation.equals(marker.getPosition())) {
+            if (marker.getPosition().equals(currentLocation)) {
+                if (distanceEditText == null) {
+                    initDistanceEditText();
+                }
+                new AlertDialog.Builder(this)
+                        .setMessage("Zmień zasięg [m]")
+                        .setView(distanceEditText)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                distanceStr = distanceEditText.getText().toString();
+                                distance = Double.valueOf(distanceStr);
+                                myLocationCircle.setRadius(distance);
+                                updateApis();
+                            }
+                        })
+                        .setNegativeButton("Wyjdź", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                            }
+                        })
+                        .create()
+                        .show();
+            }
+            else {
                 currentLocation = marker.getPosition();
                 myLocationCircle.setCenter(marker.getPosition());
                 for (APIExecutor apiExe : apiExes) {
                     apiExe.removeMarkers();
                 }
-                initApis(currentLocation);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
+                updateApis();
                 marker.hideInfoWindow();
 //                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
             }
@@ -290,17 +486,43 @@ public class MapsActivity extends FragmentActivity
             float[] distance = new float[1];
             LatLng markerLocation = marker.getPosition();
             Location.distanceBetween(myLastLocation.latitude, myLastLocation.longitude, markerLocation.latitude, markerLocation.longitude, distance);
-            new Messager(this, marker.getTitle(), marker.getSnippet(), distance[0]);
+            String[] splitted = marker.getSnippet().split("\n");
+            String duration = null;
+            if (splitted.length > 2) {
+                duration = splitted[3].split(": ")[1];
+            }
+            new Messager(this, marker.getTitle(), splitted[0], duration);
         }
     }
 
+    private void initDistanceEditText() {
+        distanceEditText = new EditText(this);
+        distanceEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
+        distanceEditText.setEms(7);
+        distanceEditText.setGravity(Gravity.CENTER);
+    }
 
     @Override
     public boolean onMarkerClick(Marker marker) {
         if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         }
+        if (marker.isInfoWindowShown())
+            marker.hideInfoWindow();
         return false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PLACE_PICKER_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+//                Place place = PlacePicker.getPlace(this, data);
+                LatLng pickedPosition = PlacePicker.getPlace(this, data).getLatLng();
+                addedMarker.setPosition(pickedPosition);
+                addedMarker.setSnippet(writeAddressAndLocation(pickedPosition));
+                addDistanceToAddedMarker();
+            }
+        }
     }
 
     @Override
@@ -310,9 +532,60 @@ public class MapsActivity extends FragmentActivity
         }
         addedMarker = mMap.addMarker(new MarkerOptions()
                 .position(latLng)
-                .title("Kliknij nowe miejsce centralne")
-                .snippet(latLng.latitude + ", " + latLng.longitude)
+                .title("Wybierz jako nowe miejsce centralne")
+                .snippet(writeAddressAndLocation(latLng))
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
-        addedMarker.showInfoWindow();
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(latLng,distance),0));
+        addDistanceToAddedMarker();
+//        addedMarker.showInfoWindow();
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        mLastLocation = location;
+//        myLocationMarker.setPosition(myLastLocation);
+    }
+
+    private void addDistanceToAddedMarker() {
+        final LatLng location = addedMarker.getPosition();
+        String query = "origins=" + myLastLocation.latitude + "," + myLastLocation.longitude +
+                "&destinations=" + location.latitude + "," + location.longitude;
+        new AsyncTask<String,Void,JsonNode>() {
+            @Override
+            protected JsonNode doInBackground(String... params) {
+                try {
+                    return new ObjectMapper().readTree(new URL(APIExecutor.getGoogleDistanceMatrixURL(params[0])));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+            @Override
+            protected void onPostExecute(JsonNode response) {
+                JsonNode result = response.get("rows").get(0).get("elements").get(0);
+                StringBuilder sb = new StringBuilder(addedMarker.getSnippet());
+                sb.append("\n" + "Dystans pieszo: ");
+                sb.append(result.get("distance").get("value").asText() + " m");
+                sb.append("\n" + "Czas podróży: ");
+                sb.append(result.get("duration").get("text").asText());
+                addedMarker.setSnippet(sb.toString());
+                addedMarker.showInfoWindow();
+            }
+        }.execute(query);
+    }
+
+    @Override
+    public void onInfoWindowLongClick(Marker marker) {
+        if (marker.equals(addedMarker)) {
+            try {
+                startActivityForResult(new PlacePicker.IntentBuilder().build(this), PLACE_PICKER_REQUEST_CODE);
+            } catch (GooglePlayServicesRepairableException e) {
+                e.printStackTrace();
+            } catch (GooglePlayServicesNotAvailableException e) {
+                e.printStackTrace();
+            }
+        }
+        else if (addedMarker != null && !addedMarker.getPosition().equals(currentLocation))
+            addedMarker.remove();
     }
 }

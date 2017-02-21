@@ -3,4 +3,5 @@
     <string name="title_activity_search">SearchActivity</string>
     <string name="title_activity_maps">Map</string>
     <string name="title_activity_places_chooser">Wybierz miejsca</string>
+    <string name="SMS_message">Witaj! Ok. %1$s odwiedzę %2$s. Do zobaczenia na miejscu!</string>
 </resources>

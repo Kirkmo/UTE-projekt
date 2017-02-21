@@ -12,7 +12,7 @@
         android:layout_marginTop="30dp"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
-        android:id="@+id/msgTextView"
+        android:id="@+id/msgEditText"
         android:layout_alignParentRight="false"
         android:layout_alignParentEnd="true"
         android:textSize="20sp" />
@@ -21,14 +21,14 @@
         android:text="Podpis:"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/msgTextView"
-        android:layout_alignLeft="@+id/msgTextView"
-        android:layout_alignStart="@+id/msgTextView"
-        android:id="@+id/signTextView"
+        android:layout_below="@+id/msgEditText"
+        android:layout_alignLeft="@+id/msgEditText"
+        android:layout_alignStart="@+id/msgEditText"
+        android:id="@+id/timeButton"
         android:textSize="18sp"
         android:layout_alignWithParentIfMissing="false"
-        android:layout_alignBottom="@+id/signEditText"
-        android:layout_alignTop="@+id/signEditText"
+        android:layout_alignBottom="@+id/placeButton"
+        android:layout_alignTop="@+id/placeButton"
         android:gravity="center" />
 
     <EditText
@@ -37,12 +37,12 @@
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
         android:ems="5"
-        android:layout_below="@+id/msgTextView"
+        android:layout_below="@+id/msgEditText"
         android:layout_marginTop="30dp"
-        android:id="@+id/signEditText"
-        android:layout_alignRight="@+id/msgTextView"
-        android:layout_alignEnd="@+id/msgTextView"
-        android:layout_toRightOf="@+id/signTextView"
+        android:id="@+id/placeButton"
+        android:layout_alignRight="@+id/msgEditText"
+        android:layout_alignEnd="@+id/msgEditText"
+        android:layout_toRightOf="@+id/timeButton"
         android:gravity="center"
         />
 
@@ -51,7 +51,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/recNrTextView"
-        android:layout_alignLeft="@+id/msgTextView"
+        android:layout_alignLeft="@+id/msgEditText"
         android:textSize="18sp"
         android:layout_alignParentBottom="false"
         android:gravity="left|center"
@@ -65,12 +65,12 @@
         android:layout_height="wrap_content"
         android:inputType="phone"
         android:ems="7"
-        android:layout_below="@+id/signEditText"
+        android:layout_below="@+id/placeButton"
         android:layout_marginTop="20dp"
         android:id="@+id/recNrEditText"
         android:gravity="center"
-        android:layout_alignRight="@+id/signEditText"
-        android:layout_alignEnd="@+id/signEditText" />
+        android:layout_alignRight="@+id/placeButton"
+        android:layout_alignEnd="@+id/placeButton" />
 
     <TextView
         android:text="Numer Adresata:"
@@ -79,7 +79,7 @@
         android:layout_below="@+id/recNrEditText"
         android:id="@+id/sendNrTextView"
         android:textSize="18sp"
-        android:layout_alignLeft="@+id/msgTextView"
+        android:layout_alignLeft="@+id/msgEditText"
         android:gravity="left|center"
         android:layout_alignBottom="@+id/sendNrEditText"
         android:layout_alignTop="@+id/sendNrEditText"

@@ -17,17 +17,27 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class APIExecutor extends AsyncTask<String, Void, String>  {
+public class APIExecutor {
+//    extends
+//} AsyncTask<String, Void, String>  {
 
     private static Context context;
     private static String UMWarszawaApiKey;
     private static String OrangeApiKey;
     private static String GoogleApiKey;
 
-    private JsonNode response;
+    private static final String UMWarszawa = "UM Warszawa";
+    private static final String GooglePlaces = "Google Places";
+    private static final String GoogleDistanceMatrix = "Google Distance Matrix";
+    private static final String OrangeAPI = "Orange API";
+
+//    private JsonNode response;
+    private String centralLocation;
     private String url;
     private int PlaceId;
+    private String placeName;
     private String ApiId;
+    private String ApiName;
     private float markerId;
     private List<NearbyPlace> nearbyPlaces;
     private GoogleMap mMap;
@@ -47,6 +57,7 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
     public APIExecutor(GoogleMap map, LatLng location, String distance, int placeId, float markerId) {
         mMap = map;
         PlaceId = placeId;
+        centralLocation = location.latitude + "," + location.longitude;
         this.markerId = markerId;
         setURL(location,distance);
     }
@@ -59,23 +70,80 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
         }
     }
 
-    @Override
-    protected String doInBackground(String... params) {
-        try {
-            response = getHttp();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return checkApiStatus();
+//    @Override
+//    protected String doInBackground(String... params) {
+//        try {
+//            response = getHttp();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        return getApiStatus();
+//    }
+//
+//    @Override
+//    protected void onPostExecute(String ApiStatus) {
+//        if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
+//            loadNearbyPlaces(getNearbyPlacesSize());
+//        } else {
+//            Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
+//        }
+//    }
+
+    private AsyncTask<String,Boolean,String> getAsyncTask() {
+        return new AsyncTask<String,Boolean,String>() {
+            @Override
+            protected String doInBackground(String... params) {
+                try {
+                    JsonNode response = getHttp();
+                    String ApiStatus = getApiStatus(response);
+                    if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
+                        String nearbyLocationsQuery = loadNearbyPlaces(response, getNearbyPlacesSize(response));
+//                    } else if (ApiStatus.equals(GoogleDistanceMatrix)) {
+                        setNearbyPlacesDistance(getHttp(getGoogleDistanceMatrixURL(nearbyLocationsQuery)));
+                    } else {
+                        return ApiStatus;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+//                return getApiStatus();
+            }
+
+            @Override
+            protected void onPostExecute(String ApiStatus) {
+                if (ApiStatus != null) {
+                    Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
+                } else {
+                    removeMarkers();
+                    for (NearbyPlace np : nearbyPlaces) {
+                        markLocation(np);
+                    }
+                }
+//                String ApiStatus = getApiStatus(response);
+//                if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
+//                    loadNearbyPlaces(response,getNearbyPlacesSize(response));
+//                } else if (ApiStatus.equals(GoogleDistanceMatrix)) {
+//                    setNearbyPlacesDistance(response);
+//                } else {
+//                    Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        };
+            }
+        };
     }
 
-    @Override
-    protected void onPostExecute(String ApiStatus) {
-        if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
-            loadNearbyPlaces(getNearbyPlacesSize());
-        } else {
-            Toast.makeText(context, ApiStatus, Toast.LENGTH_SHORT).show();
-        }
+    public void execute() {
+        getAsyncTask().execute();
+    }
+
+//    public void execute(String param) {
+//        getAsyncTask().execute(param);
+//    }
+
+    private JsonNode getHttp(String url) throws IOException {
+        return new ObjectMapper().readTree(new URL(url));
     }
 
     private JsonNode getHttp() throws IOException {
@@ -86,7 +154,9 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
         return placeId >= 100 ? true : false;
     }
 
-    private String checkApiStatus() {
+    private String getApiStatus(JsonNode response, boolean distanceReq) {
+        if (distanceReq)
+            return GoogleDistanceMatrix;
         if (ApiId.equals(OrangeApiKey))
             return response.get("deliveryStatus").asText();
         return ApiId.equals(UMWarszawaApiKey)
@@ -94,23 +164,40 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
                 : response.get("status").asText();
     }
 
-    private int getNearbyPlacesSize() {
+    private String getApiStatus(JsonNode response) {
+        return getApiStatus(response, false);
+    }
+
+    private int getNearbyPlacesSize(JsonNode response) {
         return ApiId.equals(UMWarszawaApiKey)
                 ? response.at("/result/featureMemberProperties").size()
                 : response.at("/results").size();
     }
 
-    private void loadNearbyPlaces(int size) {
+    private String loadNearbyPlaces(JsonNode response, int size) {
         nearbyPlaces = new ArrayList<>();
-        markers = new ArrayList<>();
+        StringBuilder nearbyLocationsQuery = new StringBuilder("origins=" + centralLocation);
+        nearbyLocationsQuery.append("&destinations=");
         for (int i = 0; i < size; i++) {
-            NearbyPlace np = getNearbyPlace(i);
-            markLocation(np);
+            NearbyPlace np = getNearbyPlace(response,i);
+            nearbyLocationsQuery.append(np.getLocationAsText());
+            if (i != size - 1) nearbyLocationsQuery.append("|");
+//            markLocation(np);
             nearbyPlaces.add(np);
+        }
+        return nearbyLocationsQuery.toString();
+//        execute(getGoogleDistanceMatrixURL(nearbyLocationsQuery.toString()));
+    }
+
+    private void setNearbyPlacesDistance(JsonNode response) {
+        for (int i = 0; i < nearbyPlaces.size(); i++) {
+            JsonNode result = response.get("rows").get(0).get("elements").get(i);
+            nearbyPlaces.get(i).setDistance(result.get("distance").get("value").asText());
+            nearbyPlaces.get(i).setDuration(result.get("duration").get("text").asText());
         }
     }
 
-    private NearbyPlace getNearbyPlaceUMWwa(int i) {
+    private NearbyPlace getNearbyPlaceUMWwa(JsonNode response, int i) {
         JsonNode data = response.at("/result/featureMemberProperties").get(i);
         String name = getDataByParam(data,"OPIS");
         String street = getDataByParam(data,"ULICA");
@@ -128,7 +215,7 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
         return paramData != null ? paramData.asText() : "";
     }
 
-    private NearbyPlace getNearbyPlaceGoogle(int i) {
+    private NearbyPlace getNearbyPlaceGoogle(JsonNode response, int i) {
         JsonNode result = response.get("results").get(i);
         String name = result.get("name").asText();
         String address = result.get("vicinity").asText();
@@ -138,15 +225,18 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
         return new NearbyPlace(name, address, latitude, longitude);
     }
 
-    private NearbyPlace getNearbyPlace(int i) {
-        return ApiId.equals(UMWarszawaApiKey) ? getNearbyPlaceUMWwa(i) : getNearbyPlaceGoogle(i);
+    private NearbyPlace getNearbyPlace(JsonNode response, int i) {
+        return ApiId.equals(UMWarszawaApiKey) ? getNearbyPlaceUMWwa(response,i) : getNearbyPlaceGoogle(response,i);
     }
 
     private void markLocation(NearbyPlace np) {
+        String title = np.getName();
+        if (title.isEmpty())
+            title = placeName;
         markers.add(
                 mMap.addMarker(new MarkerOptions()
-                    .title(np.getName())
-                    .snippet(np.getAddress())
+                    .title(title)
+                    .snippet(np.toString())
                     .position(np.getLocation())
                     .icon(BitmapDescriptorFactory.defaultMarker(markerId)))
         );
@@ -157,26 +247,32 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
             for (Marker marker : markers) {
                 marker.remove();
             }
-            markers.clear();
         }
+        markers = new ArrayList<>();
     }
 
     public void hideMarkers() {
-        for (Marker marker : markers) {
-            marker.setVisible(false);
+        if (markers != null) {
+            for (Marker marker : markers) {
+                marker.setVisible(false);
+            }
         }
     }
 
     public void showMarkers() {
-        for (Marker marker : markers) {
-            marker.setVisible(true);
+        if (markers != null) {
+            for (Marker marker : markers) {
+                marker.setVisible(true);
+            }
         }
     }
 
     private void makeUMWarszawaURL(LatLng location, String distance) {
         int placeId = PlaceId - 100;
         String id = context.getResources().getStringArray(R.array.places_keys)[placeId];
+        placeName = context.getResources().getStringArray(R.array.places)[placeId];
         ApiId = UMWarszawaApiKey;
+        ApiName = UMWarszawa;
         url = "https://api.um.warszawa.pl/api/action/wfsstore_get/" +
                 "?id=" + id +
                 "&circle=" + location.longitude + "," + location.latitude + "," + distance +
@@ -185,7 +281,9 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
 
     private void makeGooglePlacesURL(LatLng location, String distance) {
         String type = context.getResources().getStringArray(R.array.google_place_types)[PlaceId];
+        placeName = context.getResources().getStringArray(R.array.google_places)[PlaceId];
         ApiId = GoogleApiKey;
+        ApiName = GooglePlaces;
         url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json" +
                 "?location=" + location.latitude + "," + location.longitude +
                 "&radius=" + distance +
@@ -195,18 +293,26 @@ public class APIExecutor extends AsyncTask<String, Void, String>  {
 
     private void makeOrangeURL(String message, String receiver, String sender) {
         ApiId = OrangeApiKey;
-        if (sender.isEmpty()) {
-            url = "https://apitest.orange.pl/Messaging/v1/SMSOnnet?" +
-                    "to=" + receiver +
-                    "&msg=" + message +
-                    "&apikey=" + OrangeApiKey;
-        } else {
-            url = "https://apitest.orange.pl/Messaging/v1/SMSOnnet?" +
-                    "from=" + sender +
-                    "&to=" + receiver +
-                    "&msg=" + message +
-                    "&apikey=" + OrangeApiKey;
-        }
+        ApiName = OrangeAPI;
+        StringBuilder urlSB = new StringBuilder("https://apitest.orange.pl/Messaging/v1/SMSOnnet?");
+        if (!sender.isEmpty()) urlSB.append("from=" + sender + "&");
+        urlSB.append("to=" + receiver);
+        urlSB.append("&msg=" + message);
+        urlSB.append("&apikey=" + OrangeApiKey);
+        url = urlSB.toString();
     }
 
+    public static String getGoogleDistanceMatrixURL(String placesLocationsQuery) {
+        return "https://maps.googleapis.com/maps/api/distancematrix/json?" +
+                placesLocationsQuery +
+                "&mode=walking" +
+                "&language=pl-PL" +
+                "&key=" + GoogleApiKey;
+    }
+
+    public void update(LatLng location, String distance) {
+        centralLocation = location.latitude + "," + location.longitude;
+        setURL(location,distance);
+        execute();
+    }
 }

@@ -1,14 +1,17 @@
 package com.example.zbyszek.ute;
 
+import android.*;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -17,9 +20,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.w3c.dom.Text;
@@ -37,13 +42,14 @@ public class PlacesChooserActivity extends AppCompatActivity {
     private List<String> googlePlaces;
     private ArrayList<Integer> googlePlacesIndexesAdded;
     private boolean[] placesAdded;
+    private int placesCounter = 0;
     private Set<Integer> placesToAdd = new HashSet<>();
-    private Context context = this;
-
+    private Drawable defaultListBackground;
     private ListView mListView;
     private ArrayAdapter<String> mAdapter;
     private EditText distanceText;
     private AlertDialog placesAdderWindow;
+    private Intent mapIntent;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -65,6 +71,21 @@ public class PlacesChooserActivity extends AppCompatActivity {
 
         distanceText = (EditText) findViewById(R.id.distEditText);
         mListView = (ListView) findViewById(R.id.placesListView);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (mListView.isItemChecked(position)) {
+                    if (placesCounter < 10) {
+                        placesCounter++;
+                    } else {
+                        mListView.setItemChecked(position, false);
+                    }
+                } else {
+                    placesCounter--;
+                }
+                Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 miejsc", Toast.LENGTH_SHORT).show();
+            }
+        });
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, places) {
             @NonNull
             @Override
@@ -77,6 +98,8 @@ public class PlacesChooserActivity extends AppCompatActivity {
                         view.setBackground(background);
                     } else
                         view.setBackgroundColor(Color.LTGRAY);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    view.setBackground(mListView.getBackground());
                 }
                 return view;
             }
@@ -89,6 +112,8 @@ public class PlacesChooserActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 searchOnMap();
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
             }
         });
     }
@@ -143,9 +168,13 @@ public class PlacesChooserActivity extends AppCompatActivity {
     private void addPlaces() {
         for (int i : placesToAdd) {
             mAdapter.add(getResources().getStringArray(R.array.google_places)[i]);
-            mListView.setItemChecked(mListView.getCount() - 1, true);
+            if (placesCounter < 10) {
+                mListView.setItemChecked(mListView.getCount() - 1, true);
+                placesCounter++;
+            }
 //            places.add(getResources().getStringArray(R.array.google_places)[i]);
         }
+        Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 miejsc", Toast.LENGTH_SHORT).show();
         googlePlacesIndexesAdded.addAll(placesToAdd);
         placesToAdd.clear();
     }
@@ -175,9 +204,21 @@ public class PlacesChooserActivity extends AppCompatActivity {
         bundle.putIntegerArrayList("UMWwaChecked", checkedDefaultPlaces);
         bundle.putIntegerArrayList("GoogleChecked", checkedAddedPlaces);
         bundle.putString("distance",distance);
-        Intent intent = new Intent(PlacesChooserActivity.this, MapsActivity.class);
-        intent.putExtras(bundle);
-        startActivity(intent);
+        mapIntent = new Intent(PlacesChooserActivity.this, MapsActivity.class);
+        mapIntent.putExtras(bundle);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                String[] permissions = new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION};
+                requestPermissions(permissions, 1);
+            }
+        } else
+            startActivity(mapIntent);
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        startActivity(mapIntent);        
     }
 }
