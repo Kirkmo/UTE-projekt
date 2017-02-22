@@ -6,12 +6,14 @@ import android.content.DialogInterface;
 import android.graphics.Typeface;
 import android.support.v7.app.AlertDialog;
 import android.text.SpannableString;
+import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,6 +26,7 @@ public class Messager {
     public static final int METRES_PER_MINUTE = 80;
     private static String HOURS_CODE;
     private static String MINUTES_CODE;
+    private final Context mContext;
 
     private AlertDialog messagerDialog;
     private AlertDialog messageEditorDialog;
@@ -36,9 +39,6 @@ public class Messager {
     private int hours;
     private int minutes;
 
-    private int timeStart = 0;
-    private int timeEnd = 5;
-
     private String duration;
     private View dialogView;
     private TextView msgTextView;
@@ -47,25 +47,15 @@ public class Messager {
     private EditText sendNrEditText;
     private EditText msgEditText;
 
-    public Messager(Context context, String placeName, String placeAddress, float distance) {
-        this.placeName = placeName;
-        this.placeAddress = placeAddress;
-        setDuration(distance);
-        setTime();
-//        setMessage();
-        buildDialogWindow(context);
-    }
-
     public Messager(Context context, String placeName, String placeAddress, String duration) {
+        mContext = context;
         this.placeName = placeName;
         this.placeAddress = placeAddress;
-//        setDuration(distance);
         setToTime(duration);
-//        setMessage();
-        buildDialogWindow(context);
+        buildDialogWindow();
     }
 
-    private void setMessage(Context mContext) {
+    private void setMessage() {
         String message = mContext.getString(R.string.SMS_message);
 
         String time = writeTime();
@@ -81,11 +71,6 @@ public class Messager {
         msgTextView.setText(messageSs);
     }
 
-    private void setDuration(float distance) {
-        toMinutes = Math.round(distance / METRES_PER_MINUTE);
-        duration = convertToTime(toMinutes);
-        setTime();
-    }
 
     private void setToTime(String duration) {
         updateCurrentTime();
@@ -133,11 +118,9 @@ public class Messager {
     }
 
     private void distinguishMessage(String msg) {
-//        String msg = msgTextView.getText().toString();
         String time = writeTime();
         String place = writePlace();
         int index = 0;
-//        int timeStart;
         int start;
         List<Integer> timeStarts = new ArrayList<>();
         while (true) {
@@ -156,7 +139,6 @@ public class Messager {
             placeStarts.add(start);
             index = start + 1;
         }
-//        int placeStart = msg.indexOf(place);
         SpannableString msgSs = new SpannableString(msg);
         for (int timeStart : timeStarts) {
             msgSs.setSpan(new StyleSpan(Typeface.BOLD), timeStart, timeStart + time.length(), 0);
@@ -165,27 +147,6 @@ public class Messager {
             msgSs.setSpan(new StyleSpan(Typeface.BOLD), placeStart, placeStart + place.length(), 0);
         }
         msgTextView.setText(msgSs);
-    }
-
-    private void updateTime() {
-        updateCurrentTime();
-        int minutesToAdd = minutes - currentMinutes;
-        int hoursToAdd = hours - currentHours;
-        if (minutes < currentMinutes) {
-            hoursToAdd++;
-        }
-        if (hours < currentHours) {
-            hoursToAdd += 24;
-        }
-        toMinutes += (60 * hoursToAdd + minutesToAdd);
-        duration = convertToTime(toMinutes);
-    }
-
-    private void setTime() {
-        updateCurrentTime();
-        int min = currentMinutes + toMinutes;
-        hours = (currentHours + min / 60) % 24;
-        minutes = min % 60;
     }
 
     private void updateCurrentTime() {
@@ -201,39 +162,36 @@ public class Messager {
     }
 
     private void sendSMS() {
-        updateTime();
         String message = msgTextView.getText().toString();
         String signature = signEditText.getText().toString();
         if (signature.isEmpty())
             signature = signEditText.getHint().toString();
-        message += (" " + signature);
+        message.concat(" " + signature);
         message = StringUtils.stripAccents(message);
         String receiver = recNrEditText.getText().toString();
         if (receiver.isEmpty())
             receiver = recNrEditText.getHint().toString();
+        else if (!TextUtils.isDigitsOnly(receiver) || receiver.length() != 11 || !receiver.startsWith("48")) {
+            Toast.makeText(mContext,"Proszę wpisać numer w formacie: 48123456789",Toast.LENGTH_LONG).show();
+            return;
+        }
         String sender = sendNrEditText.getText().toString();
+        if (!sender.isEmpty())
+            if (!TextUtils.isDigitsOnly(sender) || sender.length() != 11 || !sender.startsWith("48")) {
+                Toast.makeText(mContext,"Proszę wpisać numer w formacie: 48123456789",Toast.LENGTH_LONG).show();
+                return;
+            }
         new APIExecutor(message, receiver, sender).execute();
     }
 
-    public static String convertToTime(int min) {
-        StringBuilder sb = new StringBuilder();
-        if (min > 60) {
-            String hours = String.valueOf(min / 60);
-            sb.append(hours).append(HOURS_CODE + " ");
-        }
-        String minutes = String.valueOf(min % 60);
-        sb.append(minutes).append(MINUTES_CODE);
-        return sb.toString();
-    }
-
-    private void initLayout(final Context context) {
-        dialogView = View.inflate(context, R.layout.messager_layout, null);
+    private void initLayout() {
+        dialogView = View.inflate(mContext, R.layout.messager_layout, null);
         msgTextView = (TextView) dialogView.findViewById(R.id.msgEditText);
         msgTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (messageEditorDialog == null) {
-                    buildMessageEditorDialog(context);
+                    buildMessageEditorDialog(mContext);
                 } else {
                     msgEditText.setText(msgTextView.getText());
                 }
@@ -244,7 +202,7 @@ public class Messager {
         signEditText = (EditText) dialogView.findViewById(R.id.placeButton);
         recNrEditText = (EditText) dialogView.findViewById(R.id.recNrEditText);
         sendNrEditText = (EditText) dialogView.findViewById(R.id.sendNrEditText);
-        setMessage(context);
+        setMessage();
     }
 
     private void buildMessageEditorDialog(final Context context) {
@@ -257,8 +215,7 @@ public class Messager {
             public void onClick(View v) {
                 SpannableString ss = new SpannableString(writeTime());
                 ss.setSpan(new StyleSpan(Typeface.BOLD), 0, ss.length(), 0);
-                timeStart = msgEditText.getSelectionStart();
-                timeEnd = timeStart + ss.length();
+                int timeStart = msgEditText.getSelectionStart();
                 msgEditText.getText().insert(timeStart,ss);
             }
         });
@@ -295,9 +252,9 @@ public class Messager {
         return placeName + ", " + placeAddress;
     }
 
-    private void buildDialogWindow(final Context context) {
-        initLayout(context);
-        messagerDialog = new AlertDialog.Builder(context)
+    private void buildDialogWindow() {
+        initLayout();
+        messagerDialog = new AlertDialog.Builder(mContext)
                 .setView(dialogView)
                 .setTitle("Wyślij wiadomość")
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -310,7 +267,7 @@ public class Messager {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         if (timePickerDialog == null) {
-                            buildTimePickerDialog(context);
+                            buildTimePickerDialog(mContext);
                         }
                         timePickerDialog.show();
                     }

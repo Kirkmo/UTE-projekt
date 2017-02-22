@@ -18,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class APIExecutor {
-//    extends
-//} AsyncTask<String, Void, String>  {
 
     private static Context context;
     private static String UMWarszawaApiKey;
@@ -31,12 +29,10 @@ public class APIExecutor {
     private static final String GoogleDistanceMatrix = "Google Distance Matrix";
     private static final String OrangeAPI = "Orange API";
 
-//    private JsonNode response;
     private String centralLocation;
     private String url;
     private int PlaceId;
     private String placeName;
-    private String ApiId;
     private String ApiName;
     private float markerId;
     private List<NearbyPlace> nearbyPlaces;
@@ -70,25 +66,6 @@ public class APIExecutor {
         }
     }
 
-//    @Override
-//    protected String doInBackground(String... params) {
-//        try {
-//            response = getHttp();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return getApiStatus();
-//    }
-//
-//    @Override
-//    protected void onPostExecute(String ApiStatus) {
-//        if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
-//            loadNearbyPlaces(getNearbyPlacesSize());
-//        } else {
-//            Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
-//        }
-//    }
-
     private AsyncTask<String,Boolean,String> getAsyncTask() {
         return new AsyncTask<String,Boolean,String>() {
             @Override
@@ -98,7 +75,6 @@ public class APIExecutor {
                     String ApiStatus = getApiStatus(response);
                     if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
                         String nearbyLocationsQuery = loadNearbyPlaces(response, getNearbyPlacesSize(response));
-//                    } else if (ApiStatus.equals(GoogleDistanceMatrix)) {
                         setNearbyPlacesDistance(getHttp(getGoogleDistanceMatrixURL(nearbyLocationsQuery)));
                     } else {
                         return ApiStatus;
@@ -107,7 +83,6 @@ public class APIExecutor {
                     e.printStackTrace();
                 }
                 return null;
-//                return getApiStatus();
             }
 
             @Override
@@ -120,16 +95,6 @@ public class APIExecutor {
                         markLocation(np);
                     }
                 }
-//                String ApiStatus = getApiStatus(response);
-//                if (ApiStatus.equals("OK") || ApiStatus.isEmpty()) {
-//                    loadNearbyPlaces(response,getNearbyPlacesSize(response));
-//                } else if (ApiStatus.equals(GoogleDistanceMatrix)) {
-//                    setNearbyPlacesDistance(response);
-//                } else {
-//                    Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//        };
             }
         };
     }
@@ -137,10 +102,6 @@ public class APIExecutor {
     public void execute() {
         getAsyncTask().execute();
     }
-
-//    public void execute(String param) {
-//        getAsyncTask().execute(param);
-//    }
 
     private JsonNode getHttp(String url) throws IOException {
         return new ObjectMapper().readTree(new URL(url));
@@ -157,9 +118,9 @@ public class APIExecutor {
     private String getApiStatus(JsonNode response, boolean distanceReq) {
         if (distanceReq)
             return GoogleDistanceMatrix;
-        if (ApiId.equals(OrangeApiKey))
+        if (ApiName.equals(OrangeAPI))
             return response.get("deliveryStatus").asText();
-        return ApiId.equals(UMWarszawaApiKey)
+        return ApiName.equals(UMWarszawa)
                 ? response.get("result").asText()
                 : response.get("status").asText();
     }
@@ -169,7 +130,7 @@ public class APIExecutor {
     }
 
     private int getNearbyPlacesSize(JsonNode response) {
-        return ApiId.equals(UMWarszawaApiKey)
+        return ApiName.equals(UMWarszawa)
                 ? response.at("/result/featureMemberProperties").size()
                 : response.at("/results").size();
     }
@@ -182,11 +143,9 @@ public class APIExecutor {
             NearbyPlace np = getNearbyPlace(response,i);
             nearbyLocationsQuery.append(np.getLocationAsText());
             if (i != size - 1) nearbyLocationsQuery.append("|");
-//            markLocation(np);
             nearbyPlaces.add(np);
         }
         return nearbyLocationsQuery.toString();
-//        execute(getGoogleDistanceMatrixURL(nearbyLocationsQuery.toString()));
     }
 
     private void setNearbyPlacesDistance(JsonNode response) {
@@ -226,7 +185,7 @@ public class APIExecutor {
     }
 
     private NearbyPlace getNearbyPlace(JsonNode response, int i) {
-        return ApiId.equals(UMWarszawaApiKey) ? getNearbyPlaceUMWwa(response,i) : getNearbyPlaceGoogle(response,i);
+        return ApiName.equals(UMWarszawa) ? getNearbyPlaceUMWwa(response,i) : getNearbyPlaceGoogle(response,i);
     }
 
     private void markLocation(NearbyPlace np) {
@@ -271,7 +230,6 @@ public class APIExecutor {
         int placeId = PlaceId - 100;
         String id = context.getResources().getStringArray(R.array.places_keys)[placeId];
         placeName = context.getResources().getStringArray(R.array.places)[placeId];
-        ApiId = UMWarszawaApiKey;
         ApiName = UMWarszawa;
         url = "https://api.um.warszawa.pl/api/action/wfsstore_get/" +
                 "?id=" + id +
@@ -282,7 +240,6 @@ public class APIExecutor {
     private void makeGooglePlacesURL(LatLng location, String distance) {
         String type = context.getResources().getStringArray(R.array.google_place_types)[PlaceId];
         placeName = context.getResources().getStringArray(R.array.google_places)[PlaceId];
-        ApiId = GoogleApiKey;
         ApiName = GooglePlaces;
         url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json" +
                 "?location=" + location.latitude + "," + location.longitude +
@@ -292,7 +249,6 @@ public class APIExecutor {
     }
 
     private void makeOrangeURL(String message, String receiver, String sender) {
-        ApiId = OrangeApiKey;
         ApiName = OrangeAPI;
         StringBuilder urlSB = new StringBuilder("https://apitest.orange.pl/Messaging/v1/SMSOnnet?");
         if (!sender.isEmpty()) urlSB.append("from=" + sender + "&");

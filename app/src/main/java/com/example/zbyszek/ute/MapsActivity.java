@@ -23,6 +23,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.graphics.ColorUtils;
 import android.support.v7.app.AlertDialog;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,8 +33,8 @@ import android.widget.CheckedTextView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,52 +75,41 @@ public class MapsActivity extends FragmentActivity
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
         LocationListener {
+    
+    private static final int PLACE_PICKER_REQUEST_CODE = 0;
+    private static final String REQUESTING_LOCATION_UPDATES_KEY = "Location Updates Requesting Key";
+    private static final String LOCATION_KEY = "Location Key";
 
+    private static final float MY_LOCATION_HUE = BitmapDescriptorFactory.HUE_RED;
+    private static final float ADDED_MARKER_HUE = BitmapDescriptorFactory.HUE_ROSE;
+
+    private boolean mRequestingLocationUpdates = true;
+    private boolean isConnected = false;
     private GoogleApiClient mGoogleApiClient;
-    private final static int MY_LOCATION_REQUEST_CODE = 0;
-    private final static int PLACE_PICKER_REQUEST_CODE = 1;
-    private final static String REQUESTING_LOCATION_UPDATES_KEY = "0";
-    private final static String LOCATION_KEY = "1";
     private GoogleMap mMap;
     private Location mLastLocation;
     private List<APIExecutor> apiExes;
-
     private ListView mListView;
     private ArrayAdapter<String> mAdapter;
-
     private LatLng myLastLocation;
     private LatLng currentLocation;
     private BottomSheetBehavior bottomSheetBehavior;
 
-    private boolean mRequestingLocationUpdates = true;
-    private boolean isConnected = false;
     private Marker myLocationMarker;
     private Marker addedMarker;
-    private Circle myLocationCircle;
+    private Marker centralMarker;
 
-    private String distanceStr;
-    private List<Integer> UMWWaPlaces;
-    private List<Integer> GooglePlaces;
-
+    private Circle currentLocationCircle;
+    private String distanceString;
     private double distance;
     private LocationRequest mLocationRequest;
     private Geocoder geocoder;
     private EditText distanceEditText;
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
-                mRequestingLocationUpdates);
-        outState.putParcelable(LOCATION_KEY, mLastLocation);
-
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.maps_activity);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.maps_activity);
         createGoogleApiClient();
@@ -143,6 +133,89 @@ public class MapsActivity extends FragmentActivity
         });
 
         updateValuesFromBundle(savedInstanceState);
+    }
+
+    private void createGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
+                .build();
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        mMap.setOnInfoWindowClickListener(this);
+        mMap.setOnMarkerClickListener(this);
+        mMap.setOnMapClickListener(this);
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            @Override
+            public View getInfoWindow(Marker marker) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                Context mContext = getApplicationContext();
+                LinearLayout infoWindow = new LinearLayout(mContext);
+                infoWindow.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(mContext);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    title.setTextColor(getColor(R.color.colorPrimary));
+                }
+                title.setGravity(Gravity.CENTER);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+
+                TextView snippet = new TextView(mContext);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    snippet.setTextColor(getColor(R.color.colorPrimaryDark));
+                }
+                snippet.setGravity(Gravity.CENTER);
+                snippet.append(marker.getSnippet());;
+
+                infoWindow.addView(title);
+                infoWindow.addView(snippet);
+
+                if (!marker.equals(myLocationMarker)) {
+                    LatLng markerLocation = marker.getPosition();
+                    float[] distance = new float[1];
+                    Location.distanceBetween(myLastLocation.latitude, myLastLocation.longitude, markerLocation.latitude, markerLocation.longitude, distance);
+                    TextView tv = new TextView(mContext);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        tv.setTextColor(getColor(R.color.colorPrimaryDark));
+                    }
+                    tv.setGravity(Gravity.CENTER);
+                    tv.setText("W linii prostej: " + Math.round(distance[0]) + " m");
+                    infoWindow.addView(tv);
+                }
+                return infoWindow;
+            }
+        });
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        } else {
+            mMap.setMyLocationEnabled(true);
+            mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                @Override
+                public boolean onMyLocationButtonClick() {
+                    animateMyLocation();
+                    return false;
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
+                mRequestingLocationUpdates);
+        outState.putParcelable(LOCATION_KEY, mLastLocation);
+
+        super.onSaveInstanceState(outState);
     }
 
     private void updateValuesFromBundle(Bundle savedInstanceState) {
@@ -176,110 +249,6 @@ public class MapsActivity extends FragmentActivity
                 mGoogleApiClient, this);
     }
 
-    private void createGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .addApi(Places.GEO_DATA_API)
-                .addApi(Places.PLACE_DETECTION_API)
-                .build();
-    }
-
-    public GoogleMap getMap() {
-        return mMap;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-        }
-        mMap.setMyLocationEnabled(true);
-    }
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        mMap.setOnInfoWindowClickListener(this);
-        mMap.setOnMarkerClickListener(this);
-        mMap.setOnMapClickListener(this);
-        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-            @Override
-            public View getInfoWindow(Marker marker) {
-                return null;
-            }
-
-            @Override
-            public View getInfoContents(Marker marker) {
-                Context mContext = getApplicationContext();
-                LinearLayout infoWindow = new LinearLayout(mContext);
-                infoWindow.setOrientation(LinearLayout.VERTICAL);
-
-                TextView title = new TextView(mContext);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    title.setTextColor(getColor(R.color.colorPrimary));
-                }
-                title.setGravity(Gravity.CENTER);
-                title.setTypeface(null, Typeface.BOLD);
-                title.setText(marker.getTitle());
-
-                TextView snippet = new TextView(mContext);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    snippet.setTextColor(getColor(R.color.colorPrimaryDark));
-                }
-                snippet.setGravity(Gravity.CENTER);
-                snippet.append(marker.getSnippet());// + "\n");
-
-                infoWindow.addView(title);
-                infoWindow.addView(snippet);
-
-                if (!marker.equals(myLocationMarker)) {
-                    LatLng markerLocation = marker.getPosition();
-                    float[] distance = new float[1];
-                    Location.distanceBetween(myLastLocation.latitude, myLastLocation.longitude, markerLocation.latitude, markerLocation.longitude, distance);
-//                    snippet.append("\n W linii prostej: " + Math.round(distance[0]) + " m");
-                    TextView tv = new TextView(mContext);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        tv.setTextColor(getColor(R.color.colorPrimaryDark));
-                    }
-                    tv.setGravity(Gravity.CENTER);
-                    tv.setText("W linii prostej: " + Math.round(distance[0]) + " m");
-                    infoWindow.addView(tv);
-                }
-//
-//                int minutes = Math.round(distance[0] / Messager.METRES_PER_MINUTE);
-//                snippet.append(Messager.convertToTime(minutes));
-
-                return infoWindow;
-            }
-        });
-//        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-//            @Override
-//            public boolean onMarkerClick(Marker marker) {
-//                return false;
-//            }
-//        });
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
-//                requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
-            }
-        }
-//        else
-        mMap.setMyLocationEnabled(true);
-    }
-
     @Override
     protected void onStart() {
         mGoogleApiClient.connect();
@@ -294,64 +263,17 @@ public class MapsActivity extends FragmentActivity
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        if (isConnected)
-            return;
-        Intent intent = getIntent();
-        distanceStr = intent.getStringExtra("distance");
-        UMWWaPlaces = intent.getIntegerArrayListExtra("UMWwaChecked");
-        GooglePlaces = intent.getIntegerArrayListExtra("GoogleChecked");
-        distance = Double.valueOf(distanceStr);
-        animateMyLocation();
-        initApis(myLastLocation);
         if (mRequestingLocationUpdates) {
+            mLocationRequest = LocationRequest.create();
+            mLocationRequest.setInterval(10000);
+            mLocationRequest.setFastestInterval(5000);
+            mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             startLocationUpdates();
         }
+        if (isConnected)
+            return;
+        init();
         isConnected = true;
-    }
-
-    private void startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            return;
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
-
-    private void initApis(LatLng location) {
-        apiExes = new ArrayList<>();
-        for (int i = 0; i < UMWWaPlaces.size(); i++) {
-            int placeId = UMWWaPlaces.get(i);
-            float markerId = (i + 1) * 30f;
-            APIExecutor apiExe = new APIExecutor(mMap, location, distanceStr, placeId, markerId);
-            apiExes.add(apiExe);
-            apiExe.execute();
-//            if (mAdapter.getCount() < UMWWaPlaces.size()) {
-                mAdapter.add(getResources().getStringArray(R.array.places)[placeId - 100]);
-                mListView.setItemChecked(mListView.getCount() - 1, true);
-//            } else {
-//                mListView.setItemChecked(i,true);
-//            }
-        }
-        for (int i = 0; i < GooglePlaces.size(); i++) {
-            int placeId = GooglePlaces.get(i);
-            float markerId = (UMWWaPlaces.size() + i + 1) * 30f;
-            APIExecutor apiExe = new APIExecutor(mMap, location, distanceStr, placeId, markerId);
-            apiExes.add(apiExe);
-            apiExe.execute();
-//            if (mAdapter.getCount() < UMWWaPlaces.size() + GooglePlaces.size()) {
-                mAdapter.add(getResources().getStringArray(R.array.google_places)[placeId]);
-                mListView.setItemChecked(mListView.getCount() - 1, true);
-//            } else {
-//                mListView.setItemChecked(UMWWaPlaces.size() + i,true);
-//            }
-        }
-    }
-
-    private void updateApis() {
-        for (int i = 0; i < apiExes.size(); i++) {
-            apiExes.get(i).update(currentLocation,distanceStr);
-            mListView.setItemChecked(i,true);
-        }
-        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
     }
 
     @Override
@@ -364,26 +286,56 @@ public class MapsActivity extends FragmentActivity
 
     }
 
+    private void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        } else
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    private void initApis(List<Integer> checkedPlaces, int apiSeparator, String distance, LatLng location) {
+        apiExes = new ArrayList<>();
+        for (int i = 0; i < checkedPlaces.size(); i++) {
+            int placeId = checkedPlaces.get(i);
+            float markerId = (i + 1) * 30f;
+            APIExecutor apiExe = new APIExecutor(mMap, location, distance, placeId, markerId);
+            apiExes.add(apiExe);
+            apiExe.execute();
+            String place = null;
+            if (i < apiSeparator) {
+                place = getResources().getStringArray(R.array.places)[placeId - 100];
+            } else {
+                place = getResources().getStringArray(R.array.google_places)[placeId];
+            }
+            mAdapter.add(place);
+            mListView.setItemChecked(mListView.getCount() - 1, true);
+        }
+    }
+
+    private void updateApis() {
+        for (int i = 0; i < apiExes.size(); i++) {
+            apiExes.get(i).update(currentLocation, distanceString);
+            mListView.setItemChecked(i,true);
+        }
+        currentLocationCircle.setCenter(currentLocation);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
+    }
+
     private void initLegendView() {
-//        mListView = new ListView(this);
         LinearLayout ll = (LinearLayout) findViewById(R.id.bottom_sheet);
         mListView = (ListView) ll.findViewById(R.id.legListView);
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice) {
             @NonNull
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
-//                TextView view = (TextView) super.getView(position, convertView, parent);
                 CheckedTextView view = (CheckedTextView) super.getView(position, convertView, parent);
                 float[] hsv = new float[3];
                 hsv[0] = (position + 1) * 30f;
                 hsv[1] = 0.9f;
                 hsv[2] = 0.7f;
-//                view.setTypeface(null,Typeface.BOLD);
                 view.setBackgroundColor(ColorUtils.HSLToColor(hsv));
                 view.setTextColor(Color.BLACK);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                    hsv[0] = 0.0f;
-                    view.setCheckMarkTintList(ColorStateList.valueOf(Color.WHITE));//ColorUtils.HSLToColor(hsv)));
+                    view.setCheckMarkTintList(ColorStateList.valueOf(Color.WHITE));
                 }
                 return view;
             }
@@ -404,26 +356,41 @@ public class MapsActivity extends FragmentActivity
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
     }
 
-    private void animateMyLocation() {
+    private boolean animateMyLocation() {
+        String title = null;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            myLastLocation = new LatLng(52.2191042,21.011607000000026);
+            title = getString(R.string.EiTI);
+        } else {
+                mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            if (mLastLocation == null)
+                return false;
+            myLastLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            title = getString(R.string.my_location);
         }
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-//        LatLng
-        currentLocation = myLastLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-        mLocationRequest = LocationRequest.create();
-        markLocation(myLastLocation);
-//        mMap.animateCamera(CameraUpdateFactory.zoomTo(zoomLevel));
-//        return myLastLocation;
+        currentLocation = myLastLocation;
+        currentLocationCircle = mMap.addCircle(new CircleOptions().center(currentLocation).radius(distance).strokeColor(Color.LTGRAY));
+        markMyLocation(currentLocation, title);
+        return true;
     }
 
-    private void markLocation(LatLng location) {
+    private void markMyLocation(LatLng location, String title) {
         myLocationMarker = mMap.addMarker(new MarkerOptions()
                 .position(location)
-                .title("Tu jesteś")
+                .title(title)
                 .snippet(writeAddressAndLocation(location))
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-        myLocationCircle = mMap.addCircle(new CircleOptions().center(location).radius(distance).strokeColor(Color.LTGRAY));
+                .icon(BitmapDescriptorFactory.defaultMarker(MY_LOCATION_HUE)));
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(location,distance),0));
+    }
+
+    private void markMyLocation(LatLng location) {
+        markMyLocation(location, getString(R.string.my_location));
+    }
+
+    private LatLngBounds toBounds(LatLng center, double radius) {
+        LatLng southwest = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 225);
+        LatLng northeast = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 45);
+        return new LatLngBounds(southwest, northeast);
     }
 
     private String writeAddressAndLocation(LatLng location) {
@@ -435,18 +402,12 @@ public class MapsActivity extends FragmentActivity
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return address.getAddressLine(0) + ", " + address.getLocality() + "\n" + mLastLocation.getLatitude() + ", " + mLastLocation.getLongitude();
-    }
-
-    private LatLngBounds toBounds(LatLng center, double radius) {
-        LatLng southwest = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 225);
-        LatLng northeast = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 45);
-        return new LatLngBounds(southwest, northeast);
+        return address.getAddressLine(0) + ", " + address.getLocality() + "\n" + address.getLatitude() + ", " + address.getLongitude();
     }
 
     @Override
     public void onInfoWindowClick(final Marker marker) {
-        if (marker.equals(addedMarker) || marker.equals(myLocationMarker)) {
+        if (marker.equals(addedMarker) || marker.equals(myLocationMarker) || marker.equals(centralMarker)) {
             if (marker.getPosition().equals(currentLocation)) {
                 if (distanceEditText == null) {
                     initDistanceEditText();
@@ -457,9 +418,14 @@ public class MapsActivity extends FragmentActivity
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                distanceStr = distanceEditText.getText().toString();
-                                distance = Double.valueOf(distanceStr);
-                                myLocationCircle.setRadius(distance);
+                                String newDistance = distanceEditText.getText().toString();
+                                if (!TextUtils.isDigitsOnly(newDistance)) {
+                                    Toast.makeText(getApplicationContext(), "Proszę wpisać liczbę", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+                                distanceString = distanceEditText.getText().toString();
+                                distance = Double.valueOf(distanceString);
+                                currentLocationCircle.setRadius(distance);
                                 updateApis();
                             }
                         })
@@ -474,13 +440,10 @@ public class MapsActivity extends FragmentActivity
             }
             else {
                 currentLocation = marker.getPosition();
-                myLocationCircle.setCenter(marker.getPosition());
-                for (APIExecutor apiExe : apiExes) {
-                    apiExe.removeMarkers();
-                }
+                if (centralMarker != null)
+                    centralMarker.remove();
                 updateApis();
                 marker.hideInfoWindow();
-//                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(currentLocation,distance),0));
             }
         } else {
             float[] distance = new float[1];
@@ -507,43 +470,52 @@ public class MapsActivity extends FragmentActivity
         if (bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_HIDDEN) {
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         }
-        if (marker.isInfoWindowShown())
-            marker.hideInfoWindow();
+        if (addedMarker != null && !marker.equals(addedMarker) && !addedMarker.getPosition().equals(currentLocation))
+            addedMarker.remove();
+;
         return false;
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PLACE_PICKER_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-//                Place place = PlacePicker.getPlace(this, data);
-                LatLng pickedPosition = PlacePicker.getPlace(this, data).getLatLng();
-                addedMarker.setPosition(pickedPosition);
-                addedMarker.setSnippet(writeAddressAndLocation(pickedPosition));
-                addDistanceToAddedMarker();
-            }
-        }
     }
 
     @Override
     public void onMapClick(LatLng latLng) {
         if (addedMarker != null) {
-            addedMarker.remove();
+            if (addedMarker.getPosition().equals(currentLocation)) {
+                centralMarker = addedMarker;
+            } else {
+                addedMarker.remove();
+            }
         }
         addedMarker = mMap.addMarker(new MarkerOptions()
                 .position(latLng)
-                .title("Wybierz jako nowe miejsce centralne")
+                .title(getString(R.string.choose_new))
                 .snippet(writeAddressAndLocation(latLng))
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(toBounds(latLng,distance),0));
+                .icon(BitmapDescriptorFactory.defaultMarker(ADDED_MARKER_HUE)));
         addDistanceToAddedMarker();
-//        addedMarker.showInfoWindow();
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
-//        myLocationMarker.setPosition(myLastLocation);
+        if (apiExes == null) {
+            init();
+        } else {
+            if (myLocationMarker.getPosition().equals(currentLocation)) {
+                centralMarker = myLocationMarker;
+                centralMarker.setIcon(BitmapDescriptorFactory.defaultMarker(ADDED_MARKER_HUE));
+            } else {
+                myLocationMarker.remove();
+            }
+            markMyLocation(new LatLng(location.getLatitude(),location.getLongitude()));
+        }
+    }
+
+    private void init() {
+        Intent intent = getIntent();
+        distanceString = intent.getStringExtra("distance");
+        ArrayList<Integer> checkedPlaces = intent.getIntegerArrayListExtra("checkedPlaces");
+        int apiSeparator = intent.getIntExtra("apiSeparator",1);
+        distance = Double.valueOf(distanceString);
+        if (animateMyLocation())
+            initApis(checkedPlaces,apiSeparator,distanceString,myLastLocation);
     }
 
     private void addDistanceToAddedMarker() {
@@ -569,7 +541,6 @@ public class MapsActivity extends FragmentActivity
                 sb.append("\n" + "Czas podróży: ");
                 sb.append(result.get("duration").get("text").asText());
                 addedMarker.setSnippet(sb.toString());
-                addedMarker.showInfoWindow();
             }
         }.execute(query);
     }
@@ -587,5 +558,17 @@ public class MapsActivity extends FragmentActivity
         }
         else if (addedMarker != null && !addedMarker.getPosition().equals(currentLocation))
             addedMarker.remove();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PLACE_PICKER_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                LatLng pickedPosition = PlacePicker.getPlace(this, data).getLatLng();
+                addedMarker.setPosition(pickedPosition);
+                addedMarker.setSnippet(writeAddressAndLocation(pickedPosition));
+                addDistanceToAddedMarker();
+            }
+        }
     }
 }

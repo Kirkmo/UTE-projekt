@@ -1,21 +1,25 @@
 package com.example.zbyszek.ute;
 
 import android.*;
+import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,10 +28,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,14 +38,13 @@ import java.util.Set;
 
 public class PlacesChooserActivity extends AppCompatActivity {
 
+    private static final int MY_LOCATION_REQUEST_CODE = 0;
     private List<String> places;
-    private List<String> placeTypes;
     private List<String> googlePlaces;
     private ArrayList<Integer> googlePlacesIndexesAdded;
     private boolean[] placesAdded;
     private int placesCounter = 0;
     private Set<Integer> placesToAdd = new HashSet<>();
-    private Drawable defaultListBackground;
     private ListView mListView;
     private ArrayAdapter<String> mAdapter;
     private EditText distanceText;
@@ -64,10 +64,9 @@ public class PlacesChooserActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        placesAdded = new boolean[getResources().getStringArray(R.array.google_places).length];
-//        placeTypes = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.google_place_types)));
-        places = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.places)));
         googlePlaces = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.google_places)));
+        placesAdded = new boolean[googlePlaces.size()];
+        places = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.places)));
 
         distanceText = (EditText) findViewById(R.id.distEditText);
         mListView = (ListView) findViewById(R.id.placesListView);
@@ -83,7 +82,7 @@ public class PlacesChooserActivity extends AppCompatActivity {
                 } else {
                     placesCounter--;
                 }
-                Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 miejsc", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 typów", Toast.LENGTH_SHORT).show();
             }
         });
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, places) {
@@ -112,8 +111,6 @@ public class PlacesChooserActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 searchOnMap();
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
             }
         });
     }
@@ -121,10 +118,10 @@ public class PlacesChooserActivity extends AppCompatActivity {
     private void initGooglePlacesDefault() {
         googlePlacesIndexesAdded = new ArrayList<>();
         for (int i = getResources().getStringArray(R.array.places_keys).length; i < places.size(); i++) {
-            googlePlacesIndexesAdded.add(googlePlaces.indexOf(mAdapter.getItem(i)));
-//            String placeName = mAdapter.getItem(i);
-//            int num = googlePlaces.indexOf(placeName);
-            placesAdded[googlePlaces.indexOf(mAdapter.getItem(i))] = true;
+            String placeName = mAdapter.getItem(i);
+            int index = googlePlaces.indexOf(placeName);
+            googlePlacesIndexesAdded.add(index);
+            placesAdded[index] = true;
         }
     }
 
@@ -137,7 +134,7 @@ public class PlacesChooserActivity extends AppCompatActivity {
 
     private void buildPlacesAdderWindow() {
         placesAdderWindow = new AlertDialog.Builder(this)
-                .setTitle("Wybierz dodatkowe miejsca")
+                .setTitle(R.string.add_places)
                 .setMultiChoiceItems(R.array.google_places, placesAdded, new DialogInterface.OnMultiChoiceClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which, boolean isChecked) {
@@ -172,9 +169,8 @@ public class PlacesChooserActivity extends AppCompatActivity {
                 mListView.setItemChecked(mListView.getCount() - 1, true);
                 placesCounter++;
             }
-//            places.add(getResources().getStringArray(R.array.google_places)[i]);
         }
-        Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 miejsc", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 typów", Toast.LENGTH_SHORT).show();
         googlePlacesIndexesAdded.addAll(placesToAdd);
         placesToAdd.clear();
     }
@@ -184,41 +180,70 @@ public class PlacesChooserActivity extends AppCompatActivity {
         if (distance.isEmpty()) {
             distance = distanceText.getHint().toString();
         } else if (!TextUtils.isDigitsOnly(distance)) {
-            Toast.makeText(this,"Proszę wpisać liczbę",Toast.LENGTH_SHORT);
+            Toast.makeText(this,"Proszę wpisać liczbę",Toast.LENGTH_LONG);
             return;
         }
         Bundle bundle = new Bundle();
-        ArrayList<Integer> checkedDefaultPlaces = new ArrayList<>();
-        ArrayList<Integer> checkedAddedPlaces = new ArrayList<>();
-        int firstSize = getResources().getStringArray(R.array.places_keys).length;
-        int lastSize = mListView.getCount();
-        for (int i = 0; i < lastSize; i++) {
+        ArrayList<Integer> checkedPlaces = new ArrayList<>();
+        int apiSeparator = 0;
+        int UMWWaSize = getResources().getStringArray(R.array.places_keys).length;
+        for (int i = 0; i < mListView.getCount(); i++) {
             if (mListView.isItemChecked(i)) {
-                if (i < firstSize) {
-                    checkedDefaultPlaces.add(i + 100);
+                if (i < UMWWaSize) {
+                    checkedPlaces.add(i + 100);
+                    apiSeparator++;
                 } else {
-                    checkedAddedPlaces.add(googlePlacesIndexesAdded.get(i - firstSize));
+                    checkedPlaces.add(googlePlacesIndexesAdded.get(i - UMWWaSize));
                 }
             }
         }
-        bundle.putIntegerArrayList("UMWwaChecked", checkedDefaultPlaces);
-        bundle.putIntegerArrayList("GoogleChecked", checkedAddedPlaces);
+        bundle.putIntegerArrayList("checkedPlaces", checkedPlaces);
+        bundle.putInt("apiSeparator", apiSeparator);
         bundle.putString("distance",distance);
         mapIntent = new Intent(PlacesChooserActivity.this, MapsActivity.class);
         mapIntent.putExtras(bundle);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 String[] permissions = new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION};
-                requestPermissions(permissions, 1);
+                requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
             }
-        } else
-            startActivity(mapIntent);
-
+        } else {
+            final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                Snackbar.make(findViewById(R.id.content_places_chooser),"Proszę włączyć GPS", Snackbar.LENGTH_LONG)
+                        .setAction("Włącz GPS", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                            }
+                        }).show();
+            } else
+                startActivity(mapIntent);
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        startActivity(mapIntent);        
+        if (requestCode == MY_LOCATION_REQUEST_CODE) {
+            if (permissions.length == 1 && permissions[0].equals(android.Manifest.permission.ACCESS_FINE_LOCATION) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Snackbar.make(findViewById(R.id.content_places_chooser), "Proszę włączyć GPS", Snackbar.LENGTH_LONG)
+                    .setAction("Włącz GPS", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        }
+                    }).show();
+                } else {
+                    startActivity(mapIntent);
+                }
+            }
+            else {
+                Toast.makeText(this, "Tryb bez GPSu", Toast.LENGTH_LONG).show();
+                startActivity(mapIntent);
+            }
+        }
     }
 }
