@@ -32,7 +32,8 @@
         android:gravity="center" />
 
     <EditText
-        android:hint="Szuman"
+        android:hint="Student UTE"
+        android:maxLines="1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
@@ -61,6 +62,8 @@
 
     <EditText
         android:hint="48516700823"
+        android:maxLines="1"
+        android:maxLength="11"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:inputType="phone"
@@ -73,7 +76,7 @@
         android:layout_alignEnd="@+id/placeButton" />
 
     <TextView
-        android:text="Numer Adresata:"
+        android:text="Numer Nadawcy:"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/recNrEditText"
@@ -86,6 +89,9 @@
         android:layout_toLeftOf="@+id/sendNrEditText" />
 
     <EditText
+        android:hint="48602210799"
+        android:maxLines="1"
+        android:maxLength="11"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:inputType="phone"
@@ -93,7 +99,6 @@
         android:layout_below="@+id/recNrEditText"
         android:layout_marginTop="20dp"
         android:id="@+id/sendNrEditText"
-        android:hint="48602210799"
         android:gravity="center_vertical|center"
         android:layout_alignRight="@+id/recNrEditText"
         android:layout_alignEnd="@+id/recNrEditText"

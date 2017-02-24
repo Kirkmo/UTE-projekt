@@ -13,7 +13,9 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +41,9 @@ public class APIExecutor {
     private GoogleMap mMap;
     private List<Marker> markers;
 
+    private Messager msg;
+    private boolean status;
+
     public static void setContextAndApis(Context con) {
         context = con;
         UMWarszawaApiKey = context.getString(R.string.um_warszawa_api_key);
@@ -46,7 +51,8 @@ public class APIExecutor {
         GoogleApiKey = context.getString(R.string.google_maps_key);
     }
 
-    public APIExecutor(String message, String receiver, String sender) {
+    public APIExecutor(Messager msg, String message, String receiver, String sender) {
+        this.msg = msg;
         makeOrangeURL(message, receiver, sender);
     }
 
@@ -88,7 +94,12 @@ public class APIExecutor {
             @Override
             protected void onPostExecute(String ApiStatus) {
                 if (ApiStatus != null) {
-                    Toast.makeText(context, placeName + " [" + ApiName + "]: " + ApiStatus, Toast.LENGTH_SHORT).show();
+                    String text = " [" + ApiName + "]: " + ApiStatus;
+                    if (ApiName.equals(OrangeAPI))
+                        msg.showSMSOption();
+                    else
+                        text = placeName + text;
+                    Toast.makeText(context, text, Toast.LENGTH_SHORT).show();
                 } else {
                     removeMarkers();
                     for (NearbyPlace np : nearbyPlaces) {
@@ -103,12 +114,19 @@ public class APIExecutor {
         getAsyncTask().execute();
     }
 
+    public boolean getStatus() {
+        return status;
+    }
+
     private JsonNode getHttp(String url) throws IOException {
         return new ObjectMapper().readTree(new URL(url));
     }
 
     private JsonNode getHttp() throws IOException {
-        return new ObjectMapper().readTree(new URL(url));
+        URL _url = new URL(url);
+        if (((HttpURLConnection)_url.openConnection()).getResponseCode() >= 400)
+            return new ObjectMapper().readTree(((HttpURLConnection)_url.openConnection()).getErrorStream());
+        return new ObjectMapper().readTree(_url);
     }
 
     private boolean canUseApiUMWwa(int placeId) {
@@ -118,8 +136,14 @@ public class APIExecutor {
     private String getApiStatus(JsonNode response, boolean distanceReq) {
         if (distanceReq)
             return GoogleDistanceMatrix;
-        if (ApiName.equals(OrangeAPI))
-            return response.get("deliveryStatus").asText();
+        if (ApiName.equals(OrangeAPI)) {
+            JsonNode result = response.get("deliveryStatus");
+            if (result == null) {
+                status = false;
+                result = response.get("description");
+            } else status = true;
+            return result.asText();
+        }
         return ApiName.equals(UMWarszawa)
                 ? response.get("result").asText()
                 : response.get("status").asText();
@@ -252,9 +276,9 @@ public class APIExecutor {
         ApiName = OrangeAPI;
         StringBuilder urlSB = new StringBuilder("https://apitest.orange.pl/Messaging/v1/SMSOnnet?");
         if (!sender.isEmpty()) urlSB.append("from=" + sender + "&");
-        urlSB.append("to=" + receiver);
-        urlSB.append("&msg=" + message);
-        urlSB.append("&apikey=" + OrangeApiKey);
+        urlSB.append("to=" + receiver)
+                .append("&msg=" + message)
+                .append("&apikey=" + OrangeApiKey);
         url = urlSB.toString();
     }
 

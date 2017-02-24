@@ -1,10 +1,17 @@
 package com.example.zbyszek.ute;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.os.Build;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
+import android.telephony.SmsManager;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
@@ -23,9 +30,7 @@ import java.util.List;
 
 public class Messager {
 
-    public static final int METRES_PER_MINUTE = 80;
-    private static String HOURS_CODE;
-    private static String MINUTES_CODE;
+    public static final int SEND_SMS_REQUEST_CODE = 0;
     private final Context mContext;
 
     private AlertDialog messagerDialog;
@@ -33,12 +38,16 @@ public class Messager {
     private TimePickerDialog timePickerDialog;
     private final String placeName;
     private final String placeAddress;
-    private int toMinutes;
     private int currentMinutes;
     private int currentHours;
     private int hours;
     private int minutes;
 
+    private String message;
+    private String receiver;
+    private String sender;
+
+    private boolean hasCustomTime = false;
     private String duration;
     private View dialogView;
     private TextView msgTextView;
@@ -47,11 +56,14 @@ public class Messager {
     private EditText sendNrEditText;
     private EditText msgEditText;
 
+    private APIExecutor OrangeApiExe;
+
     public Messager(Context context, String placeName, String placeAddress, String duration) {
         mContext = context;
         this.placeName = placeName;
         this.placeAddress = placeAddress;
-        setToTime(duration);
+        this.duration = duration;
+        setTime();
         buildDialogWindow();
     }
 
@@ -64,18 +76,16 @@ public class Messager {
         message = String.format(message, time, place);
         int timeStart = message.indexOf(time);
         int placeStart = message.indexOf(place);
-        SpannableString messageSs = new SpannableString(message);
-        messageSs.setSpan(new StyleSpan(Typeface.BOLD), timeStart, timeStart + time.length(), 0);
-        messageSs.setSpan(new StyleSpan(Typeface.BOLD), placeStart, placeStart + place.length(), 0);
+        SpannableString messageSS = new SpannableString(message);
+        messageSS.setSpan(new StyleSpan(Typeface.BOLD), timeStart, timeStart + time.length(), 0);
+        messageSS.setSpan(new StyleSpan(Typeface.BOLD), placeStart, placeStart + place.length(), 0);
 
-        msgTextView.setText(messageSs);
+        msgTextView.setText(messageSS);
     }
 
-
-    private void setToTime(String duration) {
+    private void setTime() {
         updateCurrentTime();
         if (duration == null) {
-            this.duration = duration;
             hours = currentHours;
             minutes = currentMinutes;
             return;
@@ -86,15 +96,9 @@ public class Messager {
         if (splitted.length < 3) {
             hoursToAdd = 0;
             minutesToAdd = Integer.valueOf(splitted[0]);
-            if (MINUTES_CODE == null)
-                MINUTES_CODE = splitted[1];
         } else {
             hoursToAdd = Integer.valueOf(splitted[0]);
             minutesToAdd = Integer.valueOf(splitted[2]);
-            if (HOURS_CODE == null)
-                HOURS_CODE = splitted[1];
-            if (MINUTES_CODE == null)
-                MINUTES_CODE = splitted[3];
         }
         hours = currentHours + hoursToAdd;
         minutes = currentMinutes + minutesToAdd;
@@ -114,7 +118,6 @@ public class Messager {
         String newTime = writeTime();
         String msg = msgTextView.getText().toString().replace(oldTime, newTime);
         distinguishMessage(msg);
-//        updateTime();
     }
 
     private void distinguishMessage(String msg) {
@@ -139,20 +142,20 @@ public class Messager {
             placeStarts.add(start);
             index = start + 1;
         }
-        SpannableString msgSs = new SpannableString(msg);
+        SpannableString msgSS = new SpannableString(msg);
         for (int timeStart : timeStarts) {
-            msgSs.setSpan(new StyleSpan(Typeface.BOLD), timeStart, timeStart + time.length(), 0);
+            msgSS.setSpan(new StyleSpan(Typeface.BOLD), timeStart, timeStart + time.length(), 0);
         }
         for (int placeStart : placeStarts) {
-            msgSs.setSpan(new StyleSpan(Typeface.BOLD), placeStart, placeStart + place.length(), 0);
+            msgSS.setSpan(new StyleSpan(Typeface.BOLD), placeStart, placeStart + place.length(), 0);
         }
-        msgTextView.setText(msgSs);
+        msgTextView.setText(msgSS);
     }
 
     private void updateCurrentTime() {
-        Calendar cal = Calendar.getInstance();
-        currentHours = cal.get(Calendar.HOUR_OF_DAY);
-        currentMinutes = cal.get(Calendar.MINUTE);
+        Calendar calendar = Calendar.getInstance();
+        currentHours = calendar.get(Calendar.HOUR_OF_DAY);
+        currentMinutes = calendar.get(Calendar.MINUTE);
     }
 
     private String writeTime() {
@@ -162,26 +165,27 @@ public class Messager {
     }
 
     private void sendSMS() {
-        String message = msgTextView.getText().toString();
+        message = msgTextView.getText().toString();
         String signature = signEditText.getText().toString();
         if (signature.isEmpty())
             signature = signEditText.getHint().toString();
-        message.concat(" " + signature);
+        message += " " + signature;
         message = StringUtils.stripAccents(message);
-        String receiver = recNrEditText.getText().toString();
+        receiver = recNrEditText.getText().toString();
         if (receiver.isEmpty())
             receiver = recNrEditText.getHint().toString();
         else if (!TextUtils.isDigitsOnly(receiver) || receiver.length() != 11 || !receiver.startsWith("48")) {
             Toast.makeText(mContext,"Proszę wpisać numer w formacie: 48123456789",Toast.LENGTH_LONG).show();
             return;
         }
-        String sender = sendNrEditText.getText().toString();
+        sender = sendNrEditText.getText().toString();
         if (!sender.isEmpty())
             if (!TextUtils.isDigitsOnly(sender) || sender.length() != 11 || !sender.startsWith("48")) {
                 Toast.makeText(mContext,"Proszę wpisać numer w formacie: 48123456789",Toast.LENGTH_LONG).show();
                 return;
             }
-        new APIExecutor(message, receiver, sender).execute();
+        OrangeApiExe = new APIExecutor(this, message, receiver, sender);
+        OrangeApiExe.execute();
     }
 
     private void initLayout() {
@@ -286,6 +290,7 @@ public class Messager {
             @Override
             public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
                 updateTime(hourOfDay, minute);
+                hasCustomTime = true;
             }
         }, hours, minutes, true);
         timePickerDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
@@ -301,5 +306,47 @@ public class Messager {
             }
         });
         timePickerDialog.show();
+    }
+
+    public boolean getStatus() {
+        return OrangeApiExe.getStatus();
+    }
+
+    public void sendDirectSMS() {
+        SmsManager.getDefault().sendTextMessage(receiver, null, message, null, null);
+        Toast.makeText(mContext,"SMS wysłany bezpośrednio",Toast.LENGTH_SHORT).show();
+    }
+
+    public void showSMSOption() {
+        if (!OrangeApiExe.getStatus()) {
+            Snackbar.make(((Activity) mContext).findViewById(R.id.maps_activity), "Wysłanie SMSa nie powiodło się. Wysłać SMS bezpośrednio?", Snackbar.LENGTH_LONG)
+                    .setAction("TAK", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    String[] permissions = new String[]{Manifest.permission.SEND_SMS};
+                                    ((Activity) mContext).requestPermissions(permissions, SEND_SMS_REQUEST_CODE);
+                                }
+                            } else
+                                sendDirectSMS();
+                        }
+                    }).show();
+        }
+    }
+
+    public void show() {
+        messagerDialog.show();
+    }
+
+    public void updateAndShow() {
+        if (!hasCustomTime) {
+            String oldTime = writeTime();
+            setTime();
+            String newTime = writeTime();
+            String msg = msgTextView.getText().toString().replace(oldTime, newTime);
+            distinguishMessage(msg);
+        }
+        messagerDialog.show();
     }
 }

@@ -1,7 +1,5 @@
 package com.example.zbyszek.ute;
 
-import android.*;
-import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -9,9 +7,13 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -82,7 +84,7 @@ public class PlacesChooserActivity extends AppCompatActivity {
                 } else {
                     placesCounter--;
                 }
-                Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 typów", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 kategorii", Toast.LENGTH_SHORT).show();
             }
         });
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, places) {
@@ -90,7 +92,7 @@ public class PlacesChooserActivity extends AppCompatActivity {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
-                if (position < getResources().getStringArray(R.array.places_keys).length){
+                if (position < getResources().getStringArray(R.array.places_keys).length) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         Drawable background = getDrawable(R.drawable.dane_po_warszawsku);
                         background.setAlpha(100);
@@ -170,17 +172,21 @@ public class PlacesChooserActivity extends AppCompatActivity {
                 placesCounter++;
             }
         }
-        Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 typów", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "Wybrano " + placesCounter + " z 10 kategorii", Toast.LENGTH_SHORT).show();
         googlePlacesIndexesAdded.addAll(placesToAdd);
         placesToAdd.clear();
     }
 
     public void searchOnMap() {
+        if (placesCounter == 0) {
+            Toast.makeText(this, "Proszę wybrać kategorie", Toast.LENGTH_LONG).show();
+            return;
+        }
         String distance = distanceText.getText().toString();
         if (distance.isEmpty()) {
             distance = distanceText.getHint().toString();
         } else if (!TextUtils.isDigitsOnly(distance)) {
-            Toast.makeText(this,"Proszę wpisać liczbę",Toast.LENGTH_LONG);
+            Toast.makeText(this, "Proszę wpisać liczbę", Toast.LENGTH_LONG);
             return;
         }
         Bundle bundle = new Bundle();
@@ -199,27 +205,19 @@ public class PlacesChooserActivity extends AppCompatActivity {
         }
         bundle.putIntegerArrayList("checkedPlaces", checkedPlaces);
         bundle.putInt("apiSeparator", apiSeparator);
-        bundle.putString("distance",distance);
+        bundle.putString("distance", distance);
         mapIntent = new Intent(PlacesChooserActivity.this, MapsActivity.class);
         mapIntent.putExtras(bundle);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                String[] permissions = new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION};
-                requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
+        checkInternet();
+        if (isOnline())
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    String[] permissions = new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION};
+                    requestPermissions(permissions, MY_LOCATION_REQUEST_CODE);
+                }
+            } else {
+                checkGPS();
             }
-        } else {
-            final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                Snackbar.make(findViewById(R.id.content_places_chooser),"Proszę włączyć GPS", Snackbar.LENGTH_LONG)
-                        .setAction("Włącz GPS", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                            }
-                        }).show();
-            } else
-                startActivity(mapIntent);
-        }
     }
 
     @Override
@@ -227,23 +225,51 @@ public class PlacesChooserActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == MY_LOCATION_REQUEST_CODE) {
             if (permissions.length == 1 && permissions[0].equals(android.Manifest.permission.ACCESS_FINE_LOCATION) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    Snackbar.make(findViewById(R.id.content_places_chooser), "Proszę włączyć GPS", Snackbar.LENGTH_LONG)
-                    .setAction("Włącz GPS", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                        }
-                    }).show();
-                } else {
-                    startActivity(mapIntent);
-                }
-            }
-            else {
+                checkGPS();
+            } else {
                 Toast.makeText(this, "Tryb bez GPSu", Toast.LENGTH_LONG).show();
                 startActivity(mapIntent);
             }
         }
+    }
+
+    private void checkInternet() {
+        if (!isOnline()) {
+            Snackbar.make(findViewById(R.id.content_places_chooser), "Koniecznie połączenie z Internetem", Snackbar.LENGTH_LONG)
+                    .setAction("Połącz", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            WifiManager manager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                            manager.setWifiEnabled(true);
+                            if (!isOnline()) {
+                                startActivity(new Intent((Settings.ACTION_SETTINGS)));
+                            }
+                        }
+                    }).show();
+        }
+    }
+
+    private void checkGPS() {
+        if (!isGPSEnabled()) {
+            Snackbar.make(findViewById(R.id.content_places_chooser), "Proszę włączyć GPS", Snackbar.LENGTH_LONG)
+                    .setAction("Włącz GPS", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        }
+                    }).show();
+        } else {
+            startActivity(mapIntent);
+        }
+    }
+
+    private boolean isOnline() {
+        ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        return manager.getActiveNetworkInfo() != null && manager.getActiveNetworkInfo().isConnectedOrConnecting();
+    }
+
+    private boolean isGPSEnabled() {
+        final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        return manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 }

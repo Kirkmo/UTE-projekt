@@ -2,10 +2,11 @@
     <string name="app_name">Projekt UTE</string>
     <string name="title_activity_search">SearchActivity</string>
     <string name="title_activity_maps">Map</string>
-    <string name="title_activity_places_chooser">Wybierz typy miejsc</string>
-    <string name="add_places">Wybierz dodatkowe typy miejsc</string>
+    <string name="title_activity_places_chooser">Wybierz kategorie miejsc</string>
+    <string name="add_places">Wybierz dodatkowe kategorie miejsc</string>
     <string name="EiTI">Wydział EiTI PW</string>
     <string name="my_location">Tutaj jesteś</string>
-    <string name="choose_new">Wybierz jako nowe miejsce centralne</string>
+    <string name="central_location">Punkt centralny</string>
+    <string name="choose_new">Wybierz jako nowy punkt centralny</string>
     <string name="SMS_message">Witaj! Ok. %1$s odwiedzę %2$s. Do zobaczenia na miejscu!</string>
 </resources>

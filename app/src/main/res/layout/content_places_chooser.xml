@@ -30,6 +30,7 @@
         android:inputType="numberSigned"
         android:ems="7"
         android:hint="1000"
+        android:maxLines="1"
         android:id="@+id/distEditText"
         android:layout_gravity="bottom|end"
         android:layout_alignParentBottom="true"
