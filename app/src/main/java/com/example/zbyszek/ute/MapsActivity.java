@@ -11,13 +11,17 @@ import android.graphics.Typeface;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.graphics.ColorUtils;
@@ -300,6 +304,8 @@ public class MapsActivity extends FragmentActivity
     }
 
     private void initApis(List<Integer> checkedPlaces, int apiSeparator, String distance, LatLng location) {
+        if (!checkInternet())
+            return;
         apiExes = new ArrayList<>();
         messagerMap = new HashMap<>();
         for (int i = 0; i < checkedPlaces.size(); i++) {
@@ -411,12 +417,13 @@ public class MapsActivity extends FragmentActivity
     private String writeAddressAndLocation(LatLng location) {
         if (geocoder == null)
             geocoder = new Geocoder(this, Locale.getDefault());
-        try {
-            Address address = geocoder.getFromLocation(location.latitude, location.longitude, 1).get(0);
-            return address.getAddressLine(0) + ", " + address.getLocality() + "\n" + address.getLatitude() + ", " + address.getLongitude();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        if (checkInternet())
+            try {
+                Address address = geocoder.getFromLocation(location.latitude, location.longitude, 1).get(0);
+                return address.getAddressLine(0) + ", " + address.getLocality() + "\n" + address.getLatitude() + ", " + address.getLongitude();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         return location.latitude + ", " + location.longitude;
     }
 
@@ -437,7 +444,8 @@ public class MapsActivity extends FragmentActivity
                                 if (!TextUtils.isDigitsOnly(newDistance)) {
                                     Toast.makeText(getApplicationContext(), "Proszę wpisać liczbę", Toast.LENGTH_SHORT).show();
                                     return;
-                                }
+                                } else if (!checkInternet())
+                                    return;
                                 distanceString = distanceEditText.getText().toString();
                                 distance = Double.valueOf(distanceString);
                                 currentLocationCircle.setRadius(distance);
@@ -451,7 +459,7 @@ public class MapsActivity extends FragmentActivity
                         })
                         .create()
                         .show();
-            } else {
+            } else if (checkInternet()) {
                 centralLocation = marker.getPosition();
                 if (!centralMarker.equals(myLocationMarker))
                     centralMarker.remove();
@@ -544,6 +552,8 @@ public class MapsActivity extends FragmentActivity
     }
 
     private void addDistanceToAddedMarker() {
+        if (!checkInternet())
+            return;
         final LatLng location = addedMarker.getPosition();
         String query = "origins=" + centralLocation.latitude + "," + centralLocation.longitude +
                 "&destinations=" + location.latitude + "," + location.longitude;
@@ -610,4 +620,28 @@ public class MapsActivity extends FragmentActivity
             }
         }
     }
+
+    private boolean isOnline() {
+        ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        return manager.getActiveNetworkInfo() != null && manager.getActiveNetworkInfo().isConnected();
+    }
+
+    private boolean checkInternet() {
+        if (!isOnline()) {
+            Snackbar.make(findViewById(R.id.maps_activity), "Brak połączenia z Internetem", Snackbar.LENGTH_LONG)
+                    .setAction("Połącz", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            WifiManager manager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                            manager.setWifiEnabled(true);
+                            if (!isOnline()) {
+                                startActivity(new Intent((Settings.ACTION_SETTINGS)));
+                            }
+                        }
+                    }).show();
+            return false;
+        }
+        return true;
+    }
+
 }

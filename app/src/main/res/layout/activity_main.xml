@@ -7,18 +7,6 @@
     android:layout_height="match_parent"
     tools:context="com.example.zbyszek.ute.MainActivity"
     android:orientation="vertical">
-    <!--tools:background="#212121"-->
-    <!--android:weightSum="1"-->
-
-
-    <!--<ImageView-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="245dp"-->
-        <!--android:id="@+id/imageView2"-->
-        <!--android:scaleType="fitStart"-->
-        <!--android:adjustViewBounds="false"-->
-        <!--android:cropToPadding="false"-->
-        <!--android:background="#212121" />-->
 
     <RelativeLayout
         android:orientation="vertical"
